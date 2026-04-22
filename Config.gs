@@ -1,0 +1,120 @@
+/**
+ * ============================================================================
+ *  CONFIGURACIÓN GLOBAL + RUTEO WEB
+ *  Aquí editas casi todo lo que es "personalizable" sin tocar la lógica.
+ * ============================================================================
+ *
+ *  CÓMO INSTALARLO:
+ *  1. Abre tu Google Sheet (será la base de datos).
+ *  2. Menú: Extensiones > Apps Script.
+ *  3. Crea estos archivos en el editor (mismos nombres exactos):
+ *        - Config.gs
+ *        - Dashboard.gs
+ *        - Inventario.gs
+ *        - Utilidades.gs
+ *        - DashboardUI.html      (Apps Script no permite que el .gs y el
+ *        - InventarioUI.html      .html tengan el mismo nombre, por eso "UI")
+ *  4. Ejecuta UNA vez `inicializarHoja()` (está en Inventario.gs) para
+ *     crear la hoja "Equipos" con las columnas básicas y datos de ejemplo.
+ *  5. Implementar > Nueva implementación > Tipo: Aplicación web.
+ * ============================================================================
+ */
+
+// ----------------------------------------------------------------------------
+//  CONFIGURACIÓN  -- edita esta sección a tu gusto
+// ----------------------------------------------------------------------------
+const CONFIG = {
+  // Nombre de la hoja (pestaña) que actúa como base de datos
+  HOJA: 'Equipos',
+
+  // ¡IMPORTANTE!
+  // El sistema lee AUTOMÁTICAMENTE las columnas reales de la primera fila
+  // de tu hoja. Puedes agregar/quitar/renombrar columnas en Sheets cuando
+  // quieras y aparecerán solas en la tabla y en el formulario.
+  //
+  // Esta lista solo se usa la primera vez (cuando ejecutas inicializarHoja
+  // y la hoja está vacía) para crear los encabezados iniciales.
+  COLUMNAS_INICIALES: [
+    'ID',
+    'Nombre',
+    'Categoria',
+    'Estado',
+    'Area',
+    'Fecha'
+  ],
+
+  // El sistema necesita saber cuáles de tus columnas tienen significado
+  // especial (ID único, estado, área, fecha). Si en tu hoja les pones
+  // otro nombre (por ejemplo "Código" en vez de "ID"), cámbialo aquí.
+  // Si alguna no existe en tu hoja, déjala en '' y se ignora.
+  CAMPOS_CLAVE: {
+    id:     'Nombre PC',          // identificador único de cada equipo
+    estado: 'Estado',             // estado del equipo (alimenta tarjetas y dona)
+    area:   'Área',               // ubicación / área (alimenta gráfico de barras)
+    fecha:  'Fecha Adquisición'   // fecha (alimenta "recientes" y alertas)
+  },
+
+  // Estados posibles. Cambia/agrega los tuyos y dales un tipo de color:
+  //   ok = verde, warn = naranja, bad = rojo
+  ESTADOS: [
+    { nombre: 'Operativo',     tipo: 'ok'   },
+    { nombre: 'Mantenimiento', tipo: 'warn' },
+    { nombre: 'Baja',          tipo: 'bad'  }
+  ],
+
+  // Encabezado de la app
+  MARCA:  'Inventario HSJ',
+  TITULO: 'Dashboard',
+
+  // Prefijo automático para los IDs nuevos (EQ-001, EQ-002…)
+  PREFIJO_ID: 'EQ-',
+
+  // ============================================================
+  // GRUPOS DE FILTROS (página Reportes Personalizados)
+  // ------------------------------------------------------------
+  // Cada grupo es una sección colapsable en el panel de filtros.
+  // - clave  = nombre que se muestra en el panel (ej. "Ubicación")
+  // - valor  = lista de columnas REALES de tu hoja que pertenecen
+  //            a ese grupo. El sistema agarra los valores únicos
+  //            de cada una y los muestra como casillas marcables.
+  //
+  // Si una columna que pongas no existe en la hoja, simplemente
+  // se omite (no rompe nada). Para agregar/quitar grupos, edita
+  // este objeto.
+  // ============================================================
+  GRUPOS_FILTROS: {
+    'Ubicación':       ['Unidad', 'Oficina', 'Área'],
+    'CPU':             ['Marca CPU', 'Modelo CPU'],
+    'Procesador':      ['Procesador', 'Velocidad'],
+    'Memoria y Disco': ['Memoria RAM', 'Disco Duro'],
+    'Mainboard':       ['Mainboard'],
+    'Monitor':         ['Marca Monitor', 'Modelo Monitor'],
+    'Periféricos':     ['Teclado', 'Mouse'],
+    'Estabilizador':   ['Estabilizador'],
+    'Software':        ['Sistema Operativo', 'Office']
+  }
+};
+
+// ----------------------------------------------------------------------------
+//  RUTEO WEB  (Dashboard / Inventario)
+// ----------------------------------------------------------------------------
+/**
+ * Punto de entrada cuando alguien abre la URL de la app web.
+ * Según el parámetro ?page=... muestra una página u otra.
+ */
+function doGet(e) {
+  // Toda la app vive en un solo archivo (AppUI) con pestañas internas.
+  // Se conserva ?page= solo para que los enlaces antiguos sigan abriendo
+  // en la pestaña correcta (?page=inventario, ?page=reportes…).
+  const tpl = HtmlService.createTemplateFromFile('AppUI');
+  tpl.pestanaInicial = (e && e.parameter && e.parameter.page) || 'dashboard';
+  return tpl.evaluate()
+    .setTitle('Inventario de Equipos')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/** URL base de la app web (la usan los enlaces del menú superior). */
+function getUrlApp() {
+  return ScriptApp.getService().getUrl();
+}
