@@ -58,10 +58,21 @@ function listarEquipos() {
   const colId     = nombreColumnaClave(tabla.encabezados, 'id');
   const colEstado = nombreColumnaClave(tabla.encabezados, 'estado');
 
+  // Construye grupos de columnas (mismas categorías que en Reportes) para
+  // que el formulario de "Editar/Nuevo equipo" se muestre segmentado.
+  const grupos = [];
+  Object.keys(CONFIG.GRUPOS_FILTROS).forEach(nombreGrupo => {
+    const cols = CONFIG.GRUPOS_FILTROS[nombreGrupo].filter(c =>
+      buscarIndice(tabla.encabezados, c) >= 0
+    );
+    if (cols.length) grupos.push({ nombre: nombreGrupo, columnas: cols });
+  });
+
   return {
     marca:    CONFIG.MARCA,
     estados:  CONFIG.ESTADOS,
     columnas: tabla.encabezados,            // <-- columnas REALES de la hoja
+    grupos:   grupos,                       // segmentación del formulario
     filas:    tabla.filas.map(f => {
       // Agregamos info útil para el frontend:
       f.__id   = colId     ? f[colId]     : '';

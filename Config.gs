@@ -83,15 +83,67 @@ const CONFIG = {
   // este objeto.
   // ============================================================
   GRUPOS_FILTROS: {
-    'Ubicación':       ['Unidad', 'Oficina', 'Área'],
-    'CPU':             ['Marca CPU', 'Modelo CPU'],
-    'Procesador':      ['Procesador', 'Velocidad'],
-    'Memoria y Disco': ['Memoria RAM', 'Disco Duro'],
-    'Mainboard':       ['Mainboard'],
-    'Monitor':         ['Marca Monitor', 'Modelo Monitor'],
-    'Periféricos':     ['Teclado', 'Mouse'],
-    'Estabilizador':   ['Estabilizador'],
-    'Software':        ['Sistema Operativo', 'Office']
+    '🪪 Identificación': [
+      'Nombre PC', 'Cod. Patrimonio', 'Código Patrimonio',
+      'Usuario', 'Fecha Adquisición'
+    ],
+    '📍 Ubicación': [
+      'Unidad', 'Oficina', 'Área'
+    ],
+    '🖥️ CPU': [
+      'Marca CPU', 'Modelo CPU', 'Estado CPU'
+    ],
+    '🔧 Mainboard': [
+      'Marca Mainboard', 'Modelo Mainboard'
+    ],
+    '⚙️ Procesador': [
+      'Marca Procesador', 'Procesador',
+      'Velocidad Procesador', 'Velocidad',
+      'Generación Procesador', 'Generación'
+    ],
+    '💾 Memoria': [
+      'Tipo Memoria', 'Total Memoria (GB)', 'Total RAM', 'Memoria RAM'
+    ],
+    '💽 Disco': [
+      'Marca Disco', 'Capacidad Disco', 'Capacidad', 'Tipo Disco', 'Disco Duro'
+    ],
+    '🎮 Tarjeta de Video': [
+      'Marca T.Video', 'Marca T. Video', 'Marca Tarjeta Video',
+      'Modelo T.Video', 'Modelo Tarjeta Video', 'Memoria Video'
+    ],
+    '💿 DVD': [
+      'Marca Grabadora DVD', 'Marca DVD',
+      'Tipo Grabadora DVD', 'Tipo DVD',
+      'Velocidad Grabadora', 'Velocidad DVD'
+    ],
+    '⌨️ Teclado': [
+      'Marca Teclado', 'Modelo Teclado',
+      'N° Serie Teclado', 'Nº Serie Teclado', 'Serie Teclado',
+      'Cod. Teclado', 'Cód. Patrimonio Teclado', 'Estado Teclado'
+    ],
+    '🖱️ Mouse': [
+      'Marca Mouse', 'Modelo Mouse',
+      'N° Serie Mouse', 'Nº Serie Mouse', 'Serie Mouse',
+      'Cod. Mouse', 'Cód. Patrimonio Mouse', 'Estado Mouse'
+    ],
+    '🖥️ Monitor': [
+      'Marca Monitor', 'Modelo Monitor', 'Tipo Monitor',
+      'N° Serie Monitor', 'Nº Serie Monitor', 'Serie Monitor',
+      'Cod. Monitor', 'Cód. Patrimonio Monitor', 'Estado Monitor'
+    ],
+    '⚡ Estabilizador / UPS': [
+      'Marca Estabilizador', 'Modelo Estabilizador',
+      'N° Serie Estabilizador', 'Estado Estabilizador',
+      'Estabilizador', 'UPS', 'Marca UPS', 'Modelo UPS'
+    ],
+    '💿 Software': [
+      'Sistema Operativo', 'Versión SO', 'Office', 'Versión Office',
+      'Antivirus'
+    ],
+    '🌐 Internet / Red': [
+      'IP', 'Número de IP', 'MAC', 'Dirección MAC',
+      'Tipo Conexión', 'Red', 'Switch', 'Punto de Red'
+    ]
   }
 };
 
