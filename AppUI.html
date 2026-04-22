@@ -652,6 +652,71 @@
     return d.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
   }
 
+  // Imprime un HTML completo dentro de un iframe oculto, sin abrir
+  // ventanas/pestañas externas. El navegador muestra su diálogo nativo
+  // de impresión y desde ahí se puede "Guardar como PDF".
+  function _imprimirEnIframe(html) {
+    const prev = document.getElementById('print-frame');
+    if (prev) prev.remove();
+    const f = document.createElement('iframe');
+    f.id = 'print-frame';
+    f.setAttribute('aria-hidden', 'true');
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(f);
+    const doc = f.contentDocument || f.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    const lanzar = () => {
+      try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) {}
+    };
+    if (doc.readyState === 'complete') setTimeout(lanzar, 80);
+    else f.onload = () => setTimeout(lanzar, 80);
+  }
+
+  // Bloque de firmas para los PDFs (Responsable TI / Usuario Receptor).
+  function _bloqueFirmas() {
+    return '<div class="firmas">' +
+             '<div class="firma"><div class="linea"></div>' +
+               '<div class="rol">Responsable TI</div>' +
+               '<div class="sub">Nombre y Firma</div></div>' +
+             '<div class="firma"><div class="linea"></div>' +
+               '<div class="rol">Usuario Receptor</div>' +
+               '<div class="sub">Nombre y Firma</div></div>' +
+           '</div>';
+  }
+
+  // CSS reutilizado por las hojas PDF (cabecera, secciones y firmas).
+  const _CSS_PDF =
+    '*{box-sizing:border-box;margin:0;padding:0}' +
+    'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;padding:24px;background:#fff}' +
+    '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:18px}' +
+    '.head .marca{font-size:11px;letter-spacing:.5px;color:#64748b;text-transform:uppercase}' +
+    '.head .pc{font-size:22px;font-weight:700;color:#0f172a}' +
+    '.head .nombre{font-size:13px;color:#475569;margin-top:2px}' +
+    '.head .meta{text-align:right;font-size:11px;color:#64748b}' +
+    '.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-top:4px;background:#dbeafe;color:#1d4ed8}' +
+    'section{margin-bottom:14px;break-inside:avoid}' +
+    'section h3{background:#2563eb;color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}' +
+    '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 10px}' +
+    '.cell{border:1px solid #e5e7eb;border-radius:4px;padding:6px 8px;background:#f8fafc}' +
+    '.cell .lbl{font-size:10px;color:#2563eb;font-weight:600;text-transform:uppercase;letter-spacing:.3px}' +
+    '.cell .val{font-size:12px;color:#0f172a;margin-top:2px;word-break:break-word}' +
+    '.resumen{background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-size:11px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}' +
+    '.resumen .lbl{color:#64748b;text-transform:uppercase;letter-spacing:.4px;font-weight:600;font-size:10px;margin-right:4px}' +
+    '.filtro{background:#dbeafe;color:#1d4ed8;padding:3px 8px;border-radius:999px;font-size:10px}' +
+    '.filtro.foco{background:#fef3c7;color:#92400e}' +
+    '.total{font-size:12px;color:#0f172a;font-weight:600;margin-left:auto}' +
+    'table.tabla{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px}' +
+    'table.tabla th{background:#2563eb;color:#fff;padding:6px 8px;border:1px solid #1d4ed8;text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:9px}' +
+    'table.tabla td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top;word-break:break-word}' +
+    'table.tabla tr:nth-child(even) td{background:#f8fafc}' +
+    '.firmas{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:50px;padding:0 30px;break-inside:avoid}' +
+    '.firma{text-align:center}' +
+    '.firma .linea{border-top:1px solid #1e293b;height:1px;margin-bottom:6px}' +
+    '.firma .rol{font-size:12px;font-weight:700;color:#0f172a}' +
+    '.firma .sub{font-size:10px;color:#64748b;margin-top:1px}' +
+    '.foot{margin-top:24px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#94a3b8;text-align:center}' +
+    '@media print{body{padding:14px}.no-print{display:none}}';
+
   /* ==========================================================================
      MÓDULO: DASHBOARD
      ========================================================================== */
@@ -956,23 +1021,7 @@
 
       const html =
         '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-        '<title>Ficha ' + _escHtml(titulo) + '</title><style>' +
-        '*{box-sizing:border-box;margin:0;padding:0}' +
-        'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;padding:24px;background:#fff}' +
-        '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:18px}' +
-        '.head .marca{font-size:11px;letter-spacing:.5px;color:#64748b;text-transform:uppercase}' +
-        '.head .pc{font-size:22px;font-weight:700;color:#0f172a}' +
-        '.head .nombre{font-size:13px;color:#475569;margin-top:2px}' +
-        '.head .meta{text-align:right;font-size:11px;color:#64748b}' +
-        '.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-top:4px;background:#dbeafe;color:#1d4ed8}' +
-        'section{margin-bottom:14px;break-inside:avoid}' +
-        'section h3{background:#2563eb;color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}' +
-        '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 10px}' +
-        '.cell{border:1px solid #e5e7eb;border-radius:4px;padding:6px 8px;background:#f8fafc}' +
-        '.cell .lbl{font-size:10px;color:#2563eb;font-weight:600;text-transform:uppercase;letter-spacing:.3px}' +
-        '.cell .val{font-size:12px;color:#0f172a;margin-top:2px;word-break:break-word}' +
-        '.foot{margin-top:18px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#94a3b8;text-align:center}' +
-        '@media print{body{padding:14px}.no-print{display:none}}' +
+        '<title>Ficha ' + _escHtml(titulo) + '</title><style>' + _CSS_PDF +
         '</style></head><body>' +
         '<div class="head">' +
           '<div><div class="marca">' + _escHtml(DATA.marca || '') + '</div>' +
@@ -983,15 +1032,11 @@
           '<div class="meta">Ficha de Equipo<br>' + new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) + '</div>' +
         '</div>' +
         bloques.join('') +
+        _bloqueFirmas() +
         '<div class="foot">Documento generado automáticamente — ' + _escHtml(DATA.marca || '') + '</div>' +
         '</body></html>';
 
-      const w = window.open('', '_blank');
-      if (!w) { alert('Habilita las ventanas emergentes para generar el PDF.'); return; }
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-      w.onload = () => { w.focus(); w.print(); };
+      _imprimirEnIframe(html);
     }
 
     return { cargar, render, abrirNuevo, abrirEditar, cerrar, guardar, eliminar, imprimirFicha };
@@ -1391,46 +1436,26 @@
 
       const html =
         '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-        '<title>Reporte ' + new Date().toISOString().slice(0,10) + '</title><style>' +
-        '*{box-sizing:border-box;margin:0;padding:0}' +
-        'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;padding:18px;background:#fff}' +
-        '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #2563eb;padding-bottom:10px;margin-bottom:12px}' +
-        '.head .marca{font-size:11px;letter-spacing:.5px;color:#64748b;text-transform:uppercase}' +
-        '.head .tit{font-size:20px;font-weight:700;color:#0f172a}' +
-        '.head .meta{text-align:right;font-size:11px;color:#64748b}' +
-        '.resumen{background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}' +
-        '.resumen .lbl{color:#64748b;text-transform:uppercase;letter-spacing:.4px;font-weight:600;font-size:10px;margin-right:4px}' +
-        '.filtro{background:#dbeafe;color:#1d4ed8;padding:3px 8px;border-radius:999px;font-size:10px}' +
-        '.filtro.foco{background:#fef3c7;color:#92400e}' +
-        '.total{font-size:12px;color:#0f172a;font-weight:600;margin-left:auto}' +
-        'table{width:100%;border-collapse:collapse;font-size:10px}' +
-        'th{background:#2563eb;color:#fff;padding:6px 8px;border:1px solid #1d4ed8;text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:9px}' +
-        'td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top;word-break:break-word}' +
-        'tr:nth-child(even) td{background:#f8fafc}' +
-        '.foot{margin-top:14px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#94a3b8;text-align:center}' +
-        '@page{size:A4 landscape;margin:10mm}' +
-        '@media print{body{padding:0}}' +
-        '</style></head><body>' +
+        '<title>Reporte ' + new Date().toISOString().slice(0,10) + '</title>' +
+        '<style>@page{size:A4 landscape;margin:10mm}' + _CSS_PDF + '</style>' +
+        '</head><body>' +
         '<div class="head">' +
           '<div><div class="marca">' + _escHtml(DATA.marca || '') + '</div>' +
-          '<div class="tit">Reporte de Inventario</div></div>' +
-          '<div class="meta">' + new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) + '</div>' +
+          '<div class="pc">Reporte de Inventario</div>' +
+          '<div class="nombre">' + filas.length + ' equipo(s) listados</div></div>' +
+          '<div class="meta">Reporte<br>' + new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) + '</div>' +
         '</div>' +
         '<div class="resumen">' +
           '<span class="lbl">Filtros:</span>' +
           (chipsFiltros.length ? chipsFiltros.join('') : '<span class="filtro">Sin filtros</span>') +
           '<span class="total">' + filas.length + ' equipos</span>' +
         '</div>' +
-        '<table><thead><tr>' + ths + '</tr></thead><tbody>' + trs + '</tbody></table>' +
+        '<table class="tabla"><thead><tr>' + ths + '</tr></thead><tbody>' + trs + '</tbody></table>' +
+        _bloqueFirmas() +
         '<div class="foot">Documento generado automáticamente — ' + _escHtml(DATA.marca || '') + '</div>' +
         '</body></html>';
 
-      const w = window.open('', '_blank');
-      if (!w) { alert('Habilita las ventanas emergentes para generar el PDF.'); return; }
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-      w.onload = () => { w.focus(); w.print(); };
+      _imprimirEnIframe(html);
     }
 
     return { cargar, render, toggleGrupo, toggleFiltro, quitarFiltro, seleccionarConteo, quitarFoco, buscar, limpiar, seleccionarFila, cerrarDetalle, exportarExcel, exportarPDF };
