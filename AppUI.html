@@ -549,7 +549,7 @@
         </div>
         <div class="botones" style="display:flex;gap:8px">
           <button class="btn btn-excel" onclick="Reportes.exportarExcel()">⬇ Excel</button>
-          <button class="btn btn-pdf"   onclick="window.print()">⬇ PDF</button>
+          <button class="btn btn-pdf"   onclick="Reportes.exportarPDF()">⬇ PDF</button>
         </div>
       </div>
 
@@ -808,6 +808,7 @@
         return '<tr>' + tds +
           '<td class="col-fija-der"><div class="acciones">' +
             '<button class="btn btn-sm btn-edit" onclick="Inventario.abrirEditar(\'' + esc(id) + '\')">Editar</button>' +
+            '<button class="btn btn-sm btn-pdf"  onclick="Inventario.imprimirFicha(\'' + esc(id) + '\')">PDF</button>' +
             '<button class="btn btn-sm btn-del"  onclick="Inventario.eliminar(\'' + esc(id) + '\')">Eliminar</button>' +
           '</div></td></tr>';
       }).join('');
@@ -914,7 +915,86 @@
 
     function esc(s) { return String(s).replace(/'/g, "\\'"); }
 
-    return { cargar, render, abrirNuevo, abrirEditar, cerrar, guardar, eliminar };
+    // Genera una ficha PDF del equipo (se abre el diálogo de impresión
+    // para guardar como PDF). Agrupa los campos según CONFIG.GRUPOS_FILTROS.
+    function imprimirFicha(id) {
+      const fila = DATA.filas.find(r => String(r.__id) === String(id));
+      if (!fila) { alert('Equipo no encontrado'); return; }
+
+      const fmt = v => {
+        if (v == null) return '';
+        if (v instanceof Date || (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))) {
+          return _formatearFecha(v);
+        }
+        return String(v);
+      };
+
+      const usadas = {};
+      const bloques = (DATA.grupos || []).map(g => {
+        const filasHtml = g.columnas.map(c => {
+          usadas[c] = true;
+          const v = fmt(fila[c]);
+          if (!String(v).trim()) return '';
+          return '<div class="cell"><div class="lbl">' + _escHtml(c) +
+                 '</div><div class="val">' + _escHtml(v) + '</div></div>';
+        }).filter(Boolean).join('');
+        if (!filasHtml) return '';
+        return '<section><h3>' + _escHtml(g.nombre) + '</h3><div class="grid">' + filasHtml + '</div></section>';
+      }).filter(Boolean);
+
+      const restoHtml = DATA.columnas.filter(c => !usadas[c]).map(c => {
+        const v = fmt(fila[c]);
+        if (!String(v).trim()) return '';
+        return '<div class="cell"><div class="lbl">' + _escHtml(c) +
+               '</div><div class="val">' + _escHtml(v) + '</div></div>';
+      }).filter(Boolean).join('');
+      if (restoHtml) bloques.push('<section><h3>Otros</h3><div class="grid">' + restoHtml + '</div></section>');
+
+      const titulo = (DATA.campos.id ? fila[DATA.campos.id] : id) || 'Equipo';
+      const nombre = fila['Nombre'] || fila[DATA.columnas[1]] || '';
+      const estado = DATA.campos.estado ? fila[DATA.campos.estado] : '';
+
+      const html =
+        '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+        '<title>Ficha ' + _escHtml(titulo) + '</title><style>' +
+        '*{box-sizing:border-box;margin:0;padding:0}' +
+        'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;padding:24px;background:#fff}' +
+        '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:18px}' +
+        '.head .marca{font-size:11px;letter-spacing:.5px;color:#64748b;text-transform:uppercase}' +
+        '.head .pc{font-size:22px;font-weight:700;color:#0f172a}' +
+        '.head .nombre{font-size:13px;color:#475569;margin-top:2px}' +
+        '.head .meta{text-align:right;font-size:11px;color:#64748b}' +
+        '.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-top:4px;background:#dbeafe;color:#1d4ed8}' +
+        'section{margin-bottom:14px;break-inside:avoid}' +
+        'section h3{background:#2563eb;color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}' +
+        '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 10px}' +
+        '.cell{border:1px solid #e5e7eb;border-radius:4px;padding:6px 8px;background:#f8fafc}' +
+        '.cell .lbl{font-size:10px;color:#2563eb;font-weight:600;text-transform:uppercase;letter-spacing:.3px}' +
+        '.cell .val{font-size:12px;color:#0f172a;margin-top:2px;word-break:break-word}' +
+        '.foot{margin-top:18px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#94a3b8;text-align:center}' +
+        '@media print{body{padding:14px}.no-print{display:none}}' +
+        '</style></head><body>' +
+        '<div class="head">' +
+          '<div><div class="marca">' + _escHtml(DATA.marca || '') + '</div>' +
+          '<div class="pc">' + _escHtml(titulo) + '</div>' +
+          '<div class="nombre">' + _escHtml(nombre) + '</div>' +
+          (estado ? '<span class="chip">' + _escHtml(estado) + '</span>' : '') +
+          '</div>' +
+          '<div class="meta">Ficha de Equipo<br>' + new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) + '</div>' +
+        '</div>' +
+        bloques.join('') +
+        '<div class="foot">Documento generado automáticamente — ' + _escHtml(DATA.marca || '') + '</div>' +
+        '</body></html>';
+
+      const w = window.open('', '_blank');
+      if (!w) { alert('Habilita las ventanas emergentes para generar el PDF.'); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.onload = () => { w.focus(); w.print(); };
+    }
+
+    return { cargar, render, abrirNuevo, abrirEditar, cerrar, guardar, eliminar, imprimirFicha };
   })();
 
   /* ==========================================================================
@@ -1281,7 +1361,79 @@
       URL.revokeObjectURL(url);
     }
 
-    return { cargar, render, toggleGrupo, toggleFiltro, quitarFiltro, seleccionarConteo, quitarFoco, buscar, limpiar, seleccionarFila, cerrarDetalle, exportarExcel };
+    function exportarPDF() {
+      const filas = hayFiltros() ? aplicarConFoco() : DATA.filas;
+      if (!filas.length) { alert('No hay datos para exportar'); return; }
+
+      const fmt = v => {
+        if (v == null) return '';
+        if (v instanceof Date || (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))) {
+          return _formatearFecha(v);
+        }
+        return String(v);
+      };
+
+      // Resumen de filtros activos para mostrarlos en el encabezado del PDF
+      const chipsFiltros = [];
+      Object.keys(filtrosActivos).forEach(col => {
+        Array.from(filtrosActivos[col]).forEach(v => {
+          chipsFiltros.push('<span class="filtro"><b>' + _escHtml(col) + ':</b> ' + _escHtml(v) + '</span>');
+        });
+      });
+      if (filtroFoco) chipsFiltros.push('<span class="filtro foco"><b>' + _escHtml(filtroFoco.col) + ':</b> ' + _escHtml(filtroFoco.val) + '</span>');
+      const qBuscar = document.getElementById('rep-buscador').value.trim();
+      if (qBuscar) chipsFiltros.push('<span class="filtro"><b>Búsqueda:</b> ' + _escHtml(qBuscar) + '</span>');
+
+      const ths = DATA.columnas.map(c => '<th>' + _escHtml(c) + '</th>').join('');
+      const trs = filas.map(f =>
+        '<tr>' + DATA.columnas.map(c => '<td>' + _escHtml(fmt(f[c])) + '</td>').join('') + '</tr>'
+      ).join('');
+
+      const html =
+        '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+        '<title>Reporte ' + new Date().toISOString().slice(0,10) + '</title><style>' +
+        '*{box-sizing:border-box;margin:0;padding:0}' +
+        'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;padding:18px;background:#fff}' +
+        '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #2563eb;padding-bottom:10px;margin-bottom:12px}' +
+        '.head .marca{font-size:11px;letter-spacing:.5px;color:#64748b;text-transform:uppercase}' +
+        '.head .tit{font-size:20px;font-weight:700;color:#0f172a}' +
+        '.head .meta{text-align:right;font-size:11px;color:#64748b}' +
+        '.resumen{background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}' +
+        '.resumen .lbl{color:#64748b;text-transform:uppercase;letter-spacing:.4px;font-weight:600;font-size:10px;margin-right:4px}' +
+        '.filtro{background:#dbeafe;color:#1d4ed8;padding:3px 8px;border-radius:999px;font-size:10px}' +
+        '.filtro.foco{background:#fef3c7;color:#92400e}' +
+        '.total{font-size:12px;color:#0f172a;font-weight:600;margin-left:auto}' +
+        'table{width:100%;border-collapse:collapse;font-size:10px}' +
+        'th{background:#2563eb;color:#fff;padding:6px 8px;border:1px solid #1d4ed8;text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:9px}' +
+        'td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top;word-break:break-word}' +
+        'tr:nth-child(even) td{background:#f8fafc}' +
+        '.foot{margin-top:14px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#94a3b8;text-align:center}' +
+        '@page{size:A4 landscape;margin:10mm}' +
+        '@media print{body{padding:0}}' +
+        '</style></head><body>' +
+        '<div class="head">' +
+          '<div><div class="marca">' + _escHtml(DATA.marca || '') + '</div>' +
+          '<div class="tit">Reporte de Inventario</div></div>' +
+          '<div class="meta">' + new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) + '</div>' +
+        '</div>' +
+        '<div class="resumen">' +
+          '<span class="lbl">Filtros:</span>' +
+          (chipsFiltros.length ? chipsFiltros.join('') : '<span class="filtro">Sin filtros</span>') +
+          '<span class="total">' + filas.length + ' equipos</span>' +
+        '</div>' +
+        '<table><thead><tr>' + ths + '</tr></thead><tbody>' + trs + '</tbody></table>' +
+        '<div class="foot">Documento generado automáticamente — ' + _escHtml(DATA.marca || '') + '</div>' +
+        '</body></html>';
+
+      const w = window.open('', '_blank');
+      if (!w) { alert('Habilita las ventanas emergentes para generar el PDF.'); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.onload = () => { w.focus(); w.print(); };
+    }
+
+    return { cargar, render, toggleGrupo, toggleFiltro, quitarFiltro, seleccionarConteo, quitarFoco, buscar, limpiar, seleccionarFila, cerrarDetalle, exportarExcel, exportarPDF };
   })();
 </script>
 </body>
