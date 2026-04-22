@@ -1,0 +1,92 @@
+{
+  "encabezados": [
+    "ID",
+    "Nombre",
+    "Categoria",
+    "Estado",
+    "Area",
+    "Fecha"
+  ],
+  "filas": [
+    {
+      "ID": "EQ-001",
+      "Nombre": "Monitor Samsung",
+      "Categoria": "Monitor",
+      "Estado": "Operativo",
+      "Area": "Emergencias",
+      "Fecha": "2026-04-21T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-002",
+      "Nombre": "Desfibrilador",
+      "Categoria": "Equipo Med",
+      "Estado": "Mantenimiento",
+      "Area": "UCI",
+      "Fecha": "2026-04-07T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-003",
+      "Nombre": "Ecógrafo Portátil",
+      "Categoria": "Equipo Med",
+      "Estado": "Operativo",
+      "Area": "Radiología",
+      "Fecha": "2026-04-19T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-004",
+      "Nombre": "Ventilador Mecánico",
+      "Categoria": "Equipo Med",
+      "Estado": "Baja",
+      "Area": "UCI",
+      "Fecha": "2026-04-20T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-005",
+      "Nombre": "Laptop Dell",
+      "Categoria": "Laptop",
+      "Estado": "Operativo",
+      "Area": "UCI",
+      "Fecha": "2026-04-18T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-006",
+      "Nombre": "PC HP EliteDesk",
+      "Categoria": "PC",
+      "Estado": "Operativo",
+      "Area": "UCI",
+      "Fecha": "2026-04-17T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-007",
+      "Nombre": "Monitor LG",
+      "Categoria": "Monitor",
+      "Estado": "Operativo",
+      "Area": "UCI",
+      "Fecha": "2026-04-16T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-008",
+      "Nombre": "Impresora Epson",
+      "Categoria": "Impresora",
+      "Estado": "Operativo",
+      "Area": "Emergencias",
+      "Fecha": "2026-04-15T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-009",
+      "Nombre": "Laptop Lenovo",
+      "Categoria": "Laptop",
+      "Estado": "Operativo",
+      "Area": "Radiología",
+      "Fecha": "2026-04-14T17:08:09.632Z"
+    },
+    {
+      "ID": "EQ-010",
+      "Nombre": "PC Dell OptiPlex",
+      "Categoria": "PC",
+      "Estado": "Operativo",
+      "Area": "Laboratorio",
+      "Fecha": "2026-04-13T17:08:09.632Z"
+    }
+  ]
+}
