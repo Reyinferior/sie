@@ -51,15 +51,35 @@
     background: var(--bg); color: var(--text); min-height: 100vh;
   }
 
-  /* Franja oscura decorativa arriba */
-  body::before {
-    content:""; position:fixed; top:0; left:0; right:0;
-    height:6px; background: var(--topstrip); z-index: 10;
+  /* Barra superior con el switch de sistema */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: var(--topstrip); color: #fff; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; box-shadow: 0 2px 4px rgba(0,0,0,.08);
   }
+  .topbar .brand-top {
+    font-weight: 700; font-size: 14px; letter-spacing: .3px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .topbar .brand-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .topbar .switcher {
+    display: flex; gap: 4px; background: rgba(255,255,255,.08);
+    padding: 4px; border-radius: 999px;
+  }
+  .topbar .switcher a {
+    color: #cbd5e1; text-decoration: none; cursor: pointer;
+    padding: 6px 14px; border-radius: 999px; font-size: 12px;
+    display: flex; align-items: center; gap: 6px;
+    transition: background .15s, color .15s;
+  }
+  .topbar .switcher a:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .topbar .switcher a.active { background: var(--accent); color: #fff; font-weight: 600; }
+  .topbar .switcher a .ico { font-size: 13px; }
 
   /* ====== SIDEBAR ===================================================== */
   .sidebar {
-    position: fixed; top: 6px; left: 0; bottom: 0;
+    position: fixed; top: 48px; left: 0; bottom: 0;
     width: var(--sidebar-w);
     background: var(--nav-bg); color: var(--nav-text);
     display: flex; flex-direction: column;
@@ -87,7 +107,7 @@
 
   @media (max-width: 720px) {
     :root { --sidebar-w: 0px; }
-    body::before { display: none; }
+    .topbar .brand-top span:not(.dot) { display:none; }
     .sidebar {
       position: relative; top: 0; width: 100%; height: auto;
       flex-direction: row; align-items: center; padding: 10px 14px;
@@ -98,7 +118,7 @@
   }
 
   /* ====== ÁREA DE CONTENIDO Y PESTAÑAS ================================ */
-  .container { margin-left: var(--sidebar-w); padding: 24px 28px; }
+  .container { margin-left: var(--sidebar-w); padding: 72px 28px 24px; }
   .tab { display: none; }
   .tab.active { display: block; }
 
@@ -470,6 +490,18 @@
 </head>
 <body>
 
+  <!-- ====== BARRA SUPERIOR (switch de sistema) ============================ -->
+  <header class="topbar">
+    <div class="brand-top">
+      <span class="dot"></span>
+      <span>Inventario HSJ</span>
+    </div>
+    <nav class="switcher" id="sistema-switch">
+      <a id="sw-equipos"    href="?sistema=equipos"><span class="ico">💻</span> Equipos</a>
+      <a id="sw-impresoras" href="?sistema=impresoras"><span class="ico">🖨️</span> Impresoras</a>
+    </nav>
+  </header>
+
   <!-- ====== SIDEBAR ====================================================== -->
   <aside class="sidebar">
     <div class="brand"><span id="marca">Inventario</span></div>
@@ -516,10 +548,10 @@
     <section class="tab" id="tab-inventario">
       <div class="page-head">
         <div>
-          <div class="page-title">Inventario de Equipos</div>
+          <div class="page-title" id="inv-titulo">Inventario</div>
           <div class="page-sub" id="inv-contador">Cargando…</div>
         </div>
-        <button class="btn btn-primary" onclick="Inventario.abrirNuevo()">+ Nuevo equipo</button>
+        <button class="btn btn-primary" id="inv-btnNuevo" onclick="Inventario.abrirNuevo()">+ Nuevo</button>
       </div>
 
       <div class="toolbar">
@@ -604,6 +636,21 @@
      SHELL DE LA APP - controla qué pestaña se muestra y carga sus datos
      una sola vez (lazy loading).
      ========================================================================== */
+  // Marca el sistema activo en la barra superior y preserva la pestaña actual
+  // al hacer click en el switch (?sistema=X&page=Y).
+  (function() {
+    const sis = (window.SISTEMA === 'impresoras') ? 'impresoras' : 'equipos';
+    const el = document.getElementById('sw-' + sis);
+    if (el) el.classList.add('active');
+    document.querySelectorAll('#sistema-switch a').forEach(a => {
+      const url = new URL(a.href, location.origin);
+      const params = new URLSearchParams(location.search);
+      const pageActual = params.get('page') || 'dashboard';
+      url.searchParams.set('page', pageActual);
+      a.href = url.pathname + '?' + url.searchParams.toString();
+    });
+  })();
+
   const App = (function() {
     // Pestaña activa de inicio (la pasa el backend según ?page=)
     const inicial = '<?= pestanaInicial ?>';
@@ -824,6 +871,15 @@
 
     function iniciar() {
       document.getElementById('marca').textContent = DATA.marca;
+
+      // Etiquetas dinámicas según el sistema activo
+      const esImpresoras = window.SISTEMA === 'impresoras';
+      const titulo = esImpresoras ? 'Inventario de Impresoras' : 'Inventario de Equipos';
+      const btnNuevo = esImpresoras ? '+ Nueva impresora' : '+ Nuevo equipo';
+      const elT = document.getElementById('inv-titulo');
+      const elB = document.getElementById('inv-btnNuevo');
+      if (elT) elT.textContent = titulo;
+      if (elB) elB.textContent = btnNuevo;
 
       const sel = document.getElementById('inv-filtroEstado');
       sel.innerHTML = '<option value="">Todos los estados</option>';

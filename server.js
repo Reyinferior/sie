@@ -6,25 +6,79 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0';
-const DATA_FILE = path.join(__dirname, 'data.json');
 
-const CONFIG = {
-  HOJA: 'Equipos',
-  COLUMNAS_INICIALES: ['ID', 'Nombre', 'Categoria', 'Estado', 'Area', 'Fecha'],
-  CAMPOS_CLAVE: { id: 'ID', estado: 'Estado', area: 'Area', fecha: 'Fecha' },
-  ESTADOS: [
-    { nombre: 'Operativo', tipo: 'ok' },
-    { nombre: 'Mantenimiento', tipo: 'warn' },
-    { nombre: 'Baja', tipo: 'bad' }
-  ],
-  MARCA: 'Inventario HSJ',
-  TITULO: 'Dashboard',
-  PREFIJO_ID: 'EQ-',
-  GRUPOS_FILTROS: {
-    'Identificación': ['ID', 'Nombre'],
-    'Ubicación': ['Area'],
-    'Clasificación': ['Categoria', 'Estado'],
-    'Fechas': ['Fecha']
+const CONFIGS = {
+  equipos: {
+    LABEL: 'Equipos',
+    DATA_FILE: path.join(__dirname, 'data_equipos.json'),
+    HOJA: 'Equipos',
+    COLUMNAS_INICIALES: ['ID', 'Nombre', 'Categoria', 'Estado', 'Area', 'Fecha'],
+    CAMPOS_CLAVE: { id: 'ID', estado: 'Estado', area: 'Area', fecha: 'Fecha' },
+    ESTADOS: [
+      { nombre: 'Operativo', tipo: 'ok' },
+      { nombre: 'Mantenimiento', tipo: 'warn' },
+      { nombre: 'Baja', tipo: 'bad' }
+    ],
+    MARCA: 'Inventario HSJ — Equipos',
+    TITULO: 'Dashboard',
+    PREFIJO_ID: 'EQ-',
+    GRUPOS_FILTROS: {
+      'Identificación': ['ID', 'Nombre'],
+      'Ubicación': ['Area'],
+      'Clasificación': ['Categoria', 'Estado'],
+      'Fechas': ['Fecha']
+    },
+    SEED: () => {
+      const hoy = new Date();
+      return [
+        { ID: 'EQ-001', Nombre: 'Monitor Samsung',     Categoria: 'Monitor',    Estado: 'Operativo',     Area: 'Emergencias', Fecha: diasAtras(hoy, 1) },
+        { ID: 'EQ-002', Nombre: 'Desfibrilador',       Categoria: 'Equipo Med', Estado: 'Mantenimiento', Area: 'UCI',         Fecha: diasAtras(hoy, 15) },
+        { ID: 'EQ-003', Nombre: 'Ecógrafo Portátil',   Categoria: 'Equipo Med', Estado: 'Operativo',     Area: 'Radiología',  Fecha: diasAtras(hoy, 3) },
+        { ID: 'EQ-004', Nombre: 'Ventilador Mecánico', Categoria: 'Equipo Med', Estado: 'Baja',          Area: 'UCI',         Fecha: diasAtras(hoy, 2) },
+        { ID: 'EQ-005', Nombre: 'Laptop Dell',         Categoria: 'Laptop',     Estado: 'Operativo',     Area: 'UCI',         Fecha: diasAtras(hoy, 4) },
+        { ID: 'EQ-006', Nombre: 'PC HP EliteDesk',     Categoria: 'PC',         Estado: 'Operativo',     Area: 'UCI',         Fecha: diasAtras(hoy, 5) },
+        { ID: 'EQ-007', Nombre: 'Monitor LG',          Categoria: 'Monitor',    Estado: 'Operativo',     Area: 'UCI',         Fecha: diasAtras(hoy, 6) },
+        { ID: 'EQ-008', Nombre: 'Impresora Epson',     Categoria: 'Impresora',  Estado: 'Operativo',     Area: 'Emergencias', Fecha: diasAtras(hoy, 7) },
+        { ID: 'EQ-009', Nombre: 'Laptop Lenovo',       Categoria: 'Laptop',     Estado: 'Operativo',     Area: 'Radiología',  Fecha: diasAtras(hoy, 8) },
+        { ID: 'EQ-010', Nombre: 'PC Dell OptiPlex',    Categoria: 'PC',         Estado: 'Operativo',     Area: 'Laboratorio', Fecha: diasAtras(hoy, 9) }
+      ];
+    }
+  },
+
+  impresoras: {
+    LABEL: 'Impresoras',
+    DATA_FILE: path.join(__dirname, 'data_impresoras.json'),
+    HOJA: 'Impresoras',
+    COLUMNAS_INICIALES: ['ID', 'Nombre', 'Marca', 'Modelo', 'Tipo', 'N° Serie', 'Estado', 'Area', 'Oficina', 'IP', 'Tóner', 'Fecha'],
+    CAMPOS_CLAVE: { id: 'ID', estado: 'Estado', area: 'Area', fecha: 'Fecha' },
+    ESTADOS: [
+      { nombre: 'Operativo', tipo: 'ok' },
+      { nombre: 'Mantenimiento', tipo: 'warn' },
+      { nombre: 'Baja', tipo: 'bad' }
+    ],
+    MARCA: 'Inventario HSJ — Impresoras',
+    TITULO: 'Dashboard de Impresoras',
+    PREFIJO_ID: 'IMP-',
+    GRUPOS_FILTROS: {
+      'Identificación': ['ID', 'Nombre', 'N° Serie'],
+      'Marca / Modelo': ['Marca', 'Modelo', 'Tipo'],
+      'Ubicación': ['Area', 'Oficina'],
+      'Red': ['IP'],
+      'Consumibles': ['Tóner'],
+      'Estado y Fechas': ['Estado', 'Fecha']
+    },
+    SEED: () => {
+      const hoy = new Date();
+      return [
+        { ID: 'IMP-001', Nombre: 'Impresora Recepción',  Marca: 'HP',      Modelo: 'LaserJet Pro M404', Tipo: 'Láser',         'N° Serie': 'CN12345AB', Estado: 'Operativo',     Area: 'Administración', Oficina: 'Recepción',   IP: '10.0.1.21', 'Tóner': 'CF259A',        Fecha: diasAtras(hoy, 30) },
+        { ID: 'IMP-002', Nombre: 'Multifuncional UCI',   Marca: 'Epson',   Modelo: 'EcoTank L3250',     Tipo: 'Multifunción',  'N° Serie': 'X81Y2Z34',  Estado: 'Operativo',     Area: 'UCI',            Oficina: 'Estación 2',  IP: '10.0.2.15', 'Tóner': 'Tinta 003',     Fecha: diasAtras(hoy, 12) },
+        { ID: 'IMP-003', Nombre: 'Impresora Farmacia',   Marca: 'Brother', Modelo: 'HL-L2370DW',        Tipo: 'Láser',         'N° Serie': 'U6311220',  Estado: 'Mantenimiento', Area: 'Farmacia',       Oficina: 'Despacho',    IP: '10.0.3.8',  'Tóner': 'TN-760',        Fecha: diasAtras(hoy, 60) },
+        { ID: 'IMP-004', Nombre: 'Impresora Lab.',       Marca: 'Canon',   Modelo: 'imageCLASS MF267',  Tipo: 'Multifunción',  'N° Serie': 'CAN9981',   Estado: 'Operativo',     Area: 'Laboratorio',    Oficina: 'Resultados',  IP: '10.0.4.10', 'Tóner': '057H',          Fecha: diasAtras(hoy, 45) },
+        { ID: 'IMP-005', Nombre: 'Impresora Radiología', Marca: 'HP',      Modelo: 'OfficeJet 9015',    Tipo: 'Tinta',         'N° Serie': 'CNB7K12',   Estado: 'Operativo',     Area: 'Radiología',     Oficina: 'Lectura',     IP: '10.0.5.4',  'Tóner': '962XL Negro',   Fecha: diasAtras(hoy, 20) },
+        { ID: 'IMP-006', Nombre: 'Impresora Emergencias',Marca: 'Xerox',   Modelo: 'Phaser 6510',       Tipo: 'Láser color',   'N° Serie': 'XR55720',   Estado: 'Baja',          Area: 'Emergencias',    Oficina: 'Triage',      IP: '',          'Tóner': '106R03480',     Fecha: diasAtras(hoy, 200) },
+        { ID: 'IMP-007', Nombre: 'Impresora Pediatría',  Marca: 'Epson',   Modelo: 'WF-2860',           Tipo: 'Multifunción',  'N° Serie': 'EP332L',    Estado: 'Operativo',     Area: 'Pediatría',      Oficina: 'Consultorio 1', IP: '10.0.6.7','Tóner': 'Tinta 220XL',  Fecha: diasAtras(hoy, 70) }
+      ];
+    }
   }
 };
 
@@ -34,35 +88,22 @@ function diasAtras(fecha, n) {
   return d.toISOString();
 }
 
-function seedData() {
-  const hoy = new Date();
-  return {
-    encabezados: CONFIG.COLUMNAS_INICIALES.slice(),
-    filas: [
-      { ID: 'EQ-001', Nombre: 'Monitor Samsung',     Categoria: 'Monitor',    Estado: 'Operativo',     Area: 'Emergencias', Fecha: diasAtras(hoy, 1) },
-      { ID: 'EQ-002', Nombre: 'Desfibrilador',       Categoria: 'Equipo Med', Estado: 'Mantenimiento', Area: 'UCI',         Fecha: diasAtras(hoy, 15) },
-      { ID: 'EQ-003', Nombre: 'Ecógrafo Portátil',   Categoria: 'Equipo Med', Estado: 'Operativo',     Area: 'Radiología',  Fecha: diasAtras(hoy, 3) },
-      { ID: 'EQ-004', Nombre: 'Ventilador Mecánico', Categoria: 'Equipo Med', Estado: 'Baja',          Area: 'UCI',         Fecha: diasAtras(hoy, 2) },
-      { ID: 'EQ-005', Nombre: 'Laptop Dell',         Categoria: 'Laptop',     Estado: 'Operativo',     Area: 'UCI',         Fecha: diasAtras(hoy, 4) },
-      { ID: 'EQ-006', Nombre: 'PC HP EliteDesk',     Categoria: 'PC',         Estado: 'Operativo',     Area: 'UCI',         Fecha: diasAtras(hoy, 5) },
-      { ID: 'EQ-007', Nombre: 'Monitor LG',          Categoria: 'Monitor',    Estado: 'Operativo',     Area: 'UCI',         Fecha: diasAtras(hoy, 6) },
-      { ID: 'EQ-008', Nombre: 'Impresora Epson',     Categoria: 'Impresora',  Estado: 'Operativo',     Area: 'Emergencias', Fecha: diasAtras(hoy, 7) },
-      { ID: 'EQ-009', Nombre: 'Laptop Lenovo',       Categoria: 'Laptop',     Estado: 'Operativo',     Area: 'Radiología',  Fecha: diasAtras(hoy, 8) },
-      { ID: 'EQ-010', Nombre: 'PC Dell OptiPlex',    Categoria: 'PC',         Estado: 'Operativo',     Area: 'Laboratorio', Fecha: diasAtras(hoy, 9) }
-    ]
-  };
+function getSistema(name) {
+  return CONFIGS[name] ? name : 'equipos';
 }
-
-function loadData() {
+function loadData(sistema) {
+  const cfg = CONFIGS[sistema];
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    return JSON.parse(fs.readFileSync(cfg.DATA_FILE, 'utf8'));
   } catch {
-    const d = seedData();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2));
+    const d = { encabezados: cfg.COLUMNAS_INICIALES.slice(), filas: cfg.SEED() };
+    fs.writeFileSync(cfg.DATA_FILE, JSON.stringify(d, null, 2));
     return d;
   }
 }
-function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2)); }
+function saveData(sistema, d) {
+  fs.writeFileSync(CONFIGS[sistema].DATA_FILE, JSON.stringify(d, null, 2));
+}
 
 function normalizar(s) {
   return String(s).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -73,12 +114,12 @@ function buscarIndice(enc, nombre) {
   for (let i = 0; i < enc.length; i++) if (normalizar(enc[i]) === obj) return i;
   return -1;
 }
-function nombreColumnaClave(enc, clave) {
-  const i = buscarIndice(enc, CONFIG.CAMPOS_CLAVE[clave]);
+function nombreColumnaClave(cfg, enc, clave) {
+  const i = buscarIndice(enc, cfg.CAMPOS_CLAVE[clave]);
   return i >= 0 ? enc[i] : null;
 }
-function tipoDeEstado(nombre) {
-  const e = CONFIG.ESTADOS.find(x => x.nombre === nombre);
+function tipoDeEstado(cfg, nombre) {
+  const e = cfg.ESTADOS.find(x => x.nombre === nombre);
   return e ? e.tipo : 'ok';
 }
 function diferenciaEnDias(desde, hasta) {
@@ -90,26 +131,27 @@ function formatearFechaLarga(d) {
   return `${dias[d.getDay()]}, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
 }
 
-// ----------- API functions (mirror .gs) -----------
+// ----------- API functions -----------
 const api = {
-  obtenerDatosDashboard() {
-    const data = loadData();
+  obtenerDatosDashboard(sistema) {
+    const cfg = CONFIGS[sistema];
+    const data = loadData(sistema);
     const enc = data.encabezados;
     const base = {
-      marca: CONFIG.MARCA, titulo: CONFIG.TITULO,
+      marca: cfg.MARCA, titulo: cfg.TITULO,
       fecha: formatearFechaLarga(new Date()),
-      estados: CONFIG.ESTADOS, total: 0, porEstado: {},
+      estados: cfg.ESTADOS, total: 0, porEstado: {},
       recientes: [], alertas: [], porArea: [], urlApp: ''
     };
     if (!data.filas.length) return base;
-    const colId = nombreColumnaClave(enc, 'id');
-    const colEstado = nombreColumnaClave(enc, 'estado');
-    const colArea = nombreColumnaClave(enc, 'area');
-    const colFecha = nombreColumnaClave(enc, 'fecha');
+    const colId = nombreColumnaClave(cfg, enc, 'id');
+    const colEstado = nombreColumnaClave(cfg, enc, 'estado');
+    const colArea = nombreColumnaClave(cfg, enc, 'area');
+    const colFecha = nombreColumnaClave(cfg, enc, 'fecha');
     const colNombre = enc[buscarIndice(enc, 'Nombre')] || enc[1] || enc[0];
 
     const conteoEstado = {};
-    CONFIG.ESTADOS.forEach(e => conteoEstado[e.nombre] = 0);
+    cfg.ESTADOS.forEach(e => conteoEstado[e.nombre] = 0);
     const conteoArea = {};
     data.filas.forEach(r => {
       const estado = colEstado ? String(r[colEstado] || '').trim() : '';
@@ -129,7 +171,7 @@ const api = {
           nombre: colNombre ? r[colNombre] : '',
           area: colArea ? r[colArea] : '',
           estado: colEstado ? r[colEstado] : '',
-          tipo: tipoDeEstado(r[colEstado])
+          tipo: tipoDeEstado(cfg, r[colEstado])
         }));
     }
     if (colEstado) {
@@ -159,85 +201,90 @@ const api = {
     return base;
   },
 
-  listarEquipos() {
-    const data = loadData();
+  listarEquipos(sistema) {
+    const cfg = CONFIGS[sistema];
+    const data = loadData(sistema);
     const enc = data.encabezados;
-    const colId = nombreColumnaClave(enc, 'id');
-    const colEstado = nombreColumnaClave(enc, 'estado');
+    const colId = nombreColumnaClave(cfg, enc, 'id');
+    const colEstado = nombreColumnaClave(cfg, enc, 'estado');
     const grupos = [];
-    Object.keys(CONFIG.GRUPOS_FILTROS).forEach(nombreGrupo => {
-      const cols = CONFIG.GRUPOS_FILTROS[nombreGrupo].filter(c => buscarIndice(enc, c) >= 0);
+    Object.keys(cfg.GRUPOS_FILTROS).forEach(nombreGrupo => {
+      const cols = cfg.GRUPOS_FILTROS[nombreGrupo].filter(c => buscarIndice(enc, c) >= 0);
       if (cols.length) grupos.push({ nombre: nombreGrupo, columnas: cols });
     });
     return {
-      marca: CONFIG.MARCA, estados: CONFIG.ESTADOS,
+      marca: cfg.MARCA, estados: cfg.ESTADOS,
       columnas: enc, grupos,
       filas: data.filas.map(f => ({
         ...f,
         __id: colId ? f[colId] : '',
-        __tipoEstado: tipoDeEstado(colEstado ? f[colEstado] : '')
+        __tipoEstado: tipoDeEstado(cfg, colEstado ? f[colEstado] : '')
       })),
       campos: {
         id: colId, estado: colEstado,
-        area: nombreColumnaClave(enc, 'area'),
-        fecha: nombreColumnaClave(enc, 'fecha')
+        area: nombreColumnaClave(cfg, enc, 'area'),
+        fecha: nombreColumnaClave(cfg, enc, 'fecha')
       },
       urlApp: ''
     };
   },
 
-  crearEquipo(datos) {
-    const data = loadData();
+  crearEquipo(sistema, datos) {
+    const cfg = CONFIGS[sistema];
+    const data = loadData(sistema);
     const enc = data.encabezados;
-    const colId = nombreColumnaClave(enc, 'id');
-    const colFecha = nombreColumnaClave(enc, 'fecha');
+    const colId = nombreColumnaClave(cfg, enc, 'id');
+    const colFecha = nombreColumnaClave(cfg, enc, 'fecha');
     if (colId && !datos[colId]) {
       let max = 0;
       data.filas.forEach(f => {
         const m = String(f[colId] || '').match(/(\d+)$/);
         if (m) max = Math.max(max, parseInt(m[1], 10));
       });
-      datos[colId] = CONFIG.PREFIJO_ID + String(max + 1).padStart(3, '0');
+      datos[colId] = cfg.PREFIJO_ID + String(max + 1).padStart(3, '0');
     }
     if (colFecha && !datos[colFecha]) datos[colFecha] = new Date().toISOString();
     const fila = {};
     enc.forEach(c => fila[c] = datos[c] !== undefined ? datos[c] : '');
     data.filas.push(fila);
-    saveData(data);
+    saveData(sistema, data);
     return { ok: true, id: colId ? datos[colId] : null };
   },
 
-  actualizarEquipo(id, datos) {
-    const data = loadData();
+  actualizarEquipo(sistema, id, datos) {
+    const cfg = CONFIGS[sistema];
+    const data = loadData(sistema);
     const enc = data.encabezados;
-    const colId = nombreColumnaClave(enc, 'id');
+    const colId = nombreColumnaClave(cfg, enc, 'id');
     if (!colId) throw new Error('No hay columna de ID.');
     const idx = data.filas.findIndex(f => String(f[colId]) === String(id));
-    if (idx < 0) throw new Error('No se encontró el equipo con ID ' + id);
+    if (idx < 0) throw new Error('No se encontró el registro con ID ' + id);
     enc.forEach(c => { if (datos[c] !== undefined) data.filas[idx][c] = datos[c]; });
-    saveData(data);
+    saveData(sistema, data);
     return { ok: true };
   },
 
-  eliminarEquipo(id) {
-    const data = loadData();
+  eliminarEquipo(sistema, id) {
+    const cfg = CONFIGS[sistema];
+    const data = loadData(sistema);
     const enc = data.encabezados;
-    const colId = nombreColumnaClave(enc, 'id');
+    const colId = nombreColumnaClave(cfg, enc, 'id');
     if (!colId) throw new Error('No hay columna de ID.');
     const idx = data.filas.findIndex(f => String(f[colId]) === String(id));
-    if (idx < 0) throw new Error('No se encontró el equipo con ID ' + id);
+    if (idx < 0) throw new Error('No se encontró el registro con ID ' + id);
     data.filas.splice(idx, 1);
-    saveData(data);
+    saveData(sistema, data);
     return { ok: true };
   },
 
-  obtenerDatosReportes() {
-    const data = loadData();
+  obtenerDatosReportes(sistema) {
+    const cfg = CONFIGS[sistema];
+    const data = loadData(sistema);
     const enc = data.encabezados;
     const grupos = [];
-    Object.keys(CONFIG.GRUPOS_FILTROS).forEach(nombreGrupo => {
+    Object.keys(cfg.GRUPOS_FILTROS).forEach(nombreGrupo => {
       const camposExistentes = [];
-      CONFIG.GRUPOS_FILTROS[nombreGrupo].forEach(col => {
+      cfg.GRUPOS_FILTROS[nombreGrupo].forEach(col => {
         if (buscarIndice(enc, col) < 0) return;
         const setVals = {};
         data.filas.forEach(f => {
@@ -248,7 +295,7 @@ const api = {
       });
       if (camposExistentes.length) grupos.push({ nombre: nombreGrupo, campos: camposExistentes });
     });
-    return { marca: CONFIG.MARCA, columnas: enc, filas: data.filas, grupos, urlApp: '' };
+    return { marca: cfg.MARCA, columnas: enc, filas: data.filas, grupos, urlApp: '' };
   }
 };
 
@@ -256,6 +303,12 @@ const api = {
 const SHIM = `
 <script>
   // Shim that emulates google.script.run by calling our REST API.
+  // It automatically prepends the active sistema as the first argument
+  // so each system has its own data.
+  (function() {
+    const params = new URLSearchParams(location.search);
+    window.SISTEMA = params.get('sistema') === 'impresoras' ? 'impresoras' : 'equipos';
+  })();
   window.google = window.google || {};
   google.script = google.script || {};
   google.script.run = (function() {
@@ -268,7 +321,7 @@ const SHIM = `
         get(target, prop) {
           if (prop in target) return target[prop];
           return function(...args) {
-            fetch('/api/' + prop, {
+            fetch('/api/' + prop + '?sistema=' + encodeURIComponent(window.SISTEMA), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(args)
@@ -309,12 +362,13 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'Función no encontrada: ' + fn }));
       }
+      const sistema = getSistema(url.searchParams.get('sistema'));
       let body = '';
       req.on('data', c => body += c);
       req.on('end', () => {
         try {
           const args = body ? JSON.parse(body) : [];
-          const result = api[fn](...args);
+          const result = api[fn](sistema, ...args);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         } catch (e) {
