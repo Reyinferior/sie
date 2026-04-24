@@ -1,22 +1,20 @@
 /**
  * ============================================================================
- *  UTILIDADES COMPARTIDAS
- *  Funciones pequeñas que usan varios módulos.
+ *  UTILIDADES COMPARTIDAS  (multi-sistema)
  * ============================================================================
+ *  Cada función recibe el `cfg` del sistema activo (CONFIGS[sistema]) para
+ *  saber qué hoja leer y qué columnas son las "clave".
  */
 
 /**
- * Lee la hoja y devuelve un objeto con TODO lo que necesitan los módulos:
- *   - encabezados reales (los que estén en la fila 1 de la hoja)
+ * Lee la hoja del sistema indicado y devuelve:
+ *   - encabezados (fila 1 real de la hoja)
  *   - filas como objetos { 'NombreColumna': valor, ... }
- *   - índices de las columnas "clave" (ID, Estado, Area, Fecha) según
- *     el mapeo definido en CONFIG.CAMPOS_CLAVE
- *
- * Así, si el usuario agrega columnas en Sheets, todo se adapta solo.
+ *   - idx: índice de las columnas clave (id/estado/area/fecha)
  */
-function leerHoja() {
-  const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.HOJA);
-  const out = { hoja: hoja, encabezados: [], filas: [], idx: {} };
+function leerHoja(cfg) {
+  const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(cfg.HOJA);
+  const out  = { hoja: hoja, encabezados: [], filas: [], idx: {} };
 
   if (!hoja || hoja.getLastRow() < 1) return out;
 
@@ -24,19 +22,17 @@ function leerHoja() {
                           .map(c => String(c).trim());
   out.encabezados = encabezados;
 
-  // Mapeo de columnas clave -> índice (-1 si no existe)
   out.idx = {
-    id:     buscarIndice(encabezados, CONFIG.CAMPOS_CLAVE.id),
-    estado: buscarIndice(encabezados, CONFIG.CAMPOS_CLAVE.estado),
-    area:   buscarIndice(encabezados, CONFIG.CAMPOS_CLAVE.area),
-    fecha:  buscarIndice(encabezados, CONFIG.CAMPOS_CLAVE.fecha)
+    id:     buscarIndice(encabezados, cfg.CAMPOS_CLAVE.id),
+    estado: buscarIndice(encabezados, cfg.CAMPOS_CLAVE.estado),
+    area:   buscarIndice(encabezados, cfg.CAMPOS_CLAVE.area),
+    fecha:  buscarIndice(encabezados, cfg.CAMPOS_CLAVE.fecha)
   };
 
   if (hoja.getLastRow() < 2) return out;
 
   const datos = hoja.getRange(2, 1, hoja.getLastRow() - 1, encabezados.length).getValues();
 
-  // Cada fila se devuelve como objeto, con los nombres reales de las columnas
   out.filas = datos.map(f => {
     const obj = {};
     encabezados.forEach((c, i) => {
@@ -48,6 +44,12 @@ function leerHoja() {
   });
 
   return out;
+}
+
+/** Devuelve el NOMBRE REAL en la hoja para una clave (id/estado/area/fecha). */
+function nombreColumnaClave(cfg, encabezados, clave) {
+  const i = buscarIndice(encabezados, cfg.CAMPOS_CLAVE[clave]);
+  return i >= 0 ? encabezados[i] : null;
 }
 
 /** Busca un encabezado sin distinguir mayúsculas/acentos. -1 si no existe. */
@@ -62,19 +64,12 @@ function buscarIndice(encabezados, nombre) {
 
 function normalizar(s) {
   return String(s).trim().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quita tildes
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-/** Devuelve el valor de una "columna clave" en una fila (objeto). */
-function valorClave(fila, encabezados, clave) {
-  const i = buscarIndice(encabezados, CONFIG.CAMPOS_CLAVE[clave]);
-  if (i < 0) return null;
-  return fila[encabezados[i]];
-}
-
-/** Busca el "tipo" (ok/warn/bad) de un estado configurado. */
-function tipoDeEstado(nombre) {
-  const e = CONFIG.ESTADOS.find(x => x.nombre === nombre);
+/** Busca el "tipo" (ok/warn/bad) de un estado configurado en este sistema. */
+function tipoDeEstado(cfg, nombre) {
+  const e = cfg.ESTADOS.find(x => x.nombre === nombre);
   return e ? e.tipo : 'ok';
 }
 

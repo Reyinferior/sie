@@ -633,6 +633,56 @@
 
 <script>
   /* ==========================================================================
+     SRV - cliente universal al backend.
+     - En Apps Script delega en window.SRV (real).
+     - En Replit (Node) hace fetch a /api/<funcion>.
+     SIEMPRE antepone window.SISTEMA como primer argumento.
+     ========================================================================== */
+  window.SISTEMA = (function() {
+    var t = '<?= sistema ?>';                    // template var de Apps Script
+    if (t && t.charAt(0) !== '<') return t;
+    var p = new URLSearchParams(location.search);
+    return p.get('sistema') || 'impresoras';
+  })();
+  window.SRV = (function() {
+    function builder(handlers) {
+      handlers = handlers || {};
+      var p = {
+        withSuccessHandler: function(fn) { return builder(Object.assign({}, handlers, { ok: fn })); },
+        withFailureHandler: function(fn) { return builder(Object.assign({}, handlers, { err: fn })); }
+      };
+      return new Proxy(p, {
+        get: function(t, prop) {
+          if (prop in t) return t[prop];
+          return function() {
+            var args = [window.SISTEMA].concat(Array.prototype.slice.call(arguments));
+            var real = window.google && window.google.script && window.SRV;
+            if (real) {
+              var r = real;
+              if (handlers.ok)  r = r.withSuccessHandler(handlers.ok);
+              if (handlers.err) r = r.withFailureHandler(handlers.err);
+              r[prop].apply(r, args);
+            } else {
+              fetch('/api/' + prop, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(args)
+              })
+              .then(function(rr) { return rr.json().then(function(b) { return { ok: rr.ok, body: b }; }); })
+              .then(function(o) {
+                if (!o.ok) (handlers.err || console.error)({ message: o.body.error || 'Error' });
+                else       (handlers.ok  || function(){})(o.body);
+              })
+              .catch(function(e) { (handlers.err || console.error)({ message: e.message }); });
+            }
+          };
+        }
+      });
+    }
+    return builder({});
+  })();
+
+  /* ==========================================================================
      SHELL DE LA APP - controla qué pestaña se muestra y carga sus datos
      una sola vez (lazy loading).
      ========================================================================== */
@@ -769,7 +819,7 @@
      ========================================================================== */
   const Dashboard = (function() {
     function cargar() {
-      google.script.run
+      SRV
         .withSuccessHandler(pintar)
         .withFailureHandler(err => {
           document.getElementById('dash-cards').innerHTML =
@@ -860,7 +910,7 @@
     let editandoId = null;
 
     function cargar() {
-      google.script.run
+      SRV
         .withSuccessHandler(d => { DATA = d; iniciar(); })
         .withFailureHandler(err => {
           document.getElementById('inv-tbody').innerHTML =
@@ -1010,18 +1060,18 @@
       const err = e => { btn.disabled = false; btn.textContent = 'Guardar'; alert('Error: ' + e.message); };
 
       if (editandoId) {
-        google.script.run.withSuccessHandler(ok).withFailureHandler(err).actualizarEquipo(editandoId, datos);
+        SRV.withSuccessHandler(ok).withFailureHandler(err).actualizarEquipo(editandoId, datos);
       } else {
         // El backend auto-genera el ID si viene vacío
         const colId = DATA.campos && DATA.campos.id;
         if (colId && !datos[colId]) delete datos[colId];
-        google.script.run.withSuccessHandler(ok).withFailureHandler(err).crearEquipo(datos);
+        SRV.withSuccessHandler(ok).withFailureHandler(err).crearEquipo(datos);
       }
     }
 
     function eliminar(id) {
       if (!confirm('¿Eliminar el equipo ' + id + '? Esta acción no se puede deshacer.')) return;
-      google.script.run
+      SRV
         .withSuccessHandler(() => { cargar(); App.recargar('dashboard'); })
         .withFailureHandler(e => alert('Error: ' + e.message))
         .eliminarEquipo(id);
@@ -1101,7 +1151,7 @@
     let buscarTimer = null;
 
     function cargar() {
-      google.script.run
+      SRV
         .withSuccessHandler(d => { DATA = d; iniciar(); })
         .withFailureHandler(err => {
           document.getElementById('rep-contenido').innerHTML =

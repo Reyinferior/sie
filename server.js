@@ -309,51 +309,16 @@ const api = {
 };
 
 // ----------- HTTP server -----------
-const SHIM = `
-<script>
-  // Shim that emulates google.script.run by calling our REST API.
-  // It automatically prepends the active sistema as the first argument
-  // so each system has its own data.
-  (function() {
-    const params = new URLSearchParams(location.search);
-    window.SISTEMA = params.get('sistema') === 'impresoras' ? 'impresoras' : 'equipos';
-  })();
-  window.google = window.google || {};
-  google.script = google.script || {};
-  google.script.run = (function() {
-    function builder(state) {
-      const proxy = {
-        withSuccessHandler(fn) { return builder({ ...state, ok: fn }); },
-        withFailureHandler(fn) { return builder({ ...state, err: fn }); }
-      };
-      return new Proxy(proxy, {
-        get(target, prop) {
-          if (prop in target) return target[prop];
-          return function(...args) {
-            fetch('/api/' + prop + '?sistema=' + encodeURIComponent(window.SISTEMA), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(args)
-            }).then(r => r.json().then(b => ({ ok: r.ok, body: b })))
-              .then(({ ok, body }) => {
-                if (!ok) (state.err || console.error)({ message: body.error || 'Error' });
-                else (state.ok || (()=>{}))(body);
-              })
-              .catch(e => (state.err || console.error)({ message: e.message }));
-          };
-        }
-      });
-    }
-    return builder({});
-  })();
-</script>
-`;
+// (El shim de google.script.run ya vive dentro de cada HTML como `window.SRV`,
+//  así Apps Script y Replit usan el mismo cliente.)
 
 function renderHtml(sistema, pestanaInicial) {
   const cfg = CONFIGS[sistema];
   let html = fs.readFileSync(path.join(__dirname, cfg.HTML_FILE), 'utf8');
+  // Resuelve los template tags de Apps Script (<?= sistema ?>, <?= pestanaInicial ?>)
+  // El shim SRV (ahora dentro del propio HTML) ya no se inyecta aquí.
+  html = html.replace(/<\?=\s*sistema\s*\?>/g, sistema);
   html = html.replace(/<\?=\s*pestanaInicial\s*\?>/g, pestanaInicial);
-  html = html.replace('</head>', SHIM + '</head>');
   return html;
 }
 
@@ -373,13 +338,15 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'Función no encontrada: ' + fn }));
       }
-      const sistema = getSistema(url.searchParams.get('sistema'));
       let body = '';
       req.on('data', c => body += c);
       req.on('end', () => {
         try {
+          // El primer arg del body ES el sistema (lo antepone el shim SRV).
+          // Las firmas en api[fn] son (sistema, ...args), igual que en .gs.
           const args = body ? JSON.parse(body) : [];
-          const result = api[fn](sistema, ...args);
+          if (!args.length || !CONFIGS[args[0]]) args.unshift('equipos');
+          const result = api[fn](...args);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         } catch (e) {

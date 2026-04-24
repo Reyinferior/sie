@@ -1,20 +1,18 @@
 /**
  * ============================================================================
- *  MÓDULO DASHBOARD
- *  Funciones que alimentan la página DashboardUI.html con los datos resumidos.
- *
- *  Las columnas se detectan AUTOMÁTICAMENTE de la hoja. Solo necesita
- *  conocer cuáles son las columnas de "Estado", "Area" y "Fecha", y eso
- *  se configura en CONFIG.CAMPOS_CLAVE (en Config.gs).
+ *  MÓDULO DASHBOARD  (multi-sistema)
+ *  Alimenta la pestaña Dashboard con resúmenes (totales, recientes, alertas,
+ *  distribución por área). Recibe `sistema` para saber qué hoja consultar.
  * ============================================================================
  */
 
-function obtenerDatosDashboard() {
+function obtenerDatosDashboard(sistema) {
+  const cfg  = getCfg(sistema);
   const base = {
-    marca:     CONFIG.MARCA,
-    titulo:    CONFIG.TITULO,
+    marca:     cfg.MARCA,
+    titulo:    cfg.TITULO,
     fecha:     formatearFechaLarga(new Date()),
-    estados:   CONFIG.ESTADOS,
+    estados:   cfg.ESTADOS,
     total:     0,
     porEstado: {},
     recientes: [],
@@ -23,24 +21,21 @@ function obtenerDatosDashboard() {
     urlApp:    getUrlApp()
   };
 
-  // Lee toda la hoja con auto-detección de columnas
-  const tabla = leerHoja();
+  const tabla = leerHoja(cfg);
   if (!tabla.filas.length) return base;
 
   const enc = tabla.encabezados;
-
-  // Nombres reales de las columnas clave (los que el usuario tenga)
-  const colId     = CONFIG.CAMPOS_CLAVE.id     && enc[buscarIndice(enc, CONFIG.CAMPOS_CLAVE.id)];
-  const colEstado = CONFIG.CAMPOS_CLAVE.estado && enc[buscarIndice(enc, CONFIG.CAMPOS_CLAVE.estado)];
-  const colArea   = CONFIG.CAMPOS_CLAVE.area   && enc[buscarIndice(enc, CONFIG.CAMPOS_CLAVE.area)];
-  const colFecha  = CONFIG.CAMPOS_CLAVE.fecha  && enc[buscarIndice(enc, CONFIG.CAMPOS_CLAVE.fecha)];
+  const colId     = nombreColumnaClave(cfg, enc, 'id');
+  const colEstado = nombreColumnaClave(cfg, enc, 'estado');
+  const colArea   = nombreColumnaClave(cfg, enc, 'area');
+  const colFecha  = nombreColumnaClave(cfg, enc, 'fecha');
 
   // Buscamos una columna "Nombre" si existe; si no, usamos la 2ª
   const colNombre = enc[buscarIndice(enc, 'Nombre')] || enc[1] || enc[0];
 
   // ---- conteos ------------------------------------------------------------
   const conteoEstado = {};
-  CONFIG.ESTADOS.forEach(e => conteoEstado[e.nombre] = 0);
+  cfg.ESTADOS.forEach(e => conteoEstado[e.nombre] = 0);
   const conteoArea = {};
 
   tabla.filas.forEach(r => {
@@ -64,7 +59,7 @@ function obtenerDatosDashboard() {
         nombre: colNombre ? r[colNombre] : '',
         area:   colArea   ? r[colArea]   : '',
         estado: colEstado ? r[colEstado] : '',
-        tipo:   tipoDeEstado(r[colEstado])
+        tipo:   tipoDeEstado(cfg, r[colEstado])
       }));
   }
 
@@ -81,13 +76,9 @@ function obtenerDatosDashboard() {
         const nombre = colNombre ? r[colNombre] : '';
         const id     = colId     ? r[colId]     : '';
         const dias   = (colFecha && r[colFecha]) ? diferenciaEnDias(r[colFecha], hoy) : null;
-
         const titulo = (estado === 'Baja')
           ? (nombre + ' ' + id + ' dado de baja')
-          : (nombre + ' ' + id + (dias != null
-                ? ' lleva ' + dias + ' días en mantenimiento'
-                : ' en mantenimiento'));
-
+          : (nombre + ' ' + id + (dias != null ? ' lleva ' + dias + ' días en mantenimiento' : ' en mantenimiento'));
         return {
           tipo:    estado === 'Baja' ? 'bad' : 'warn',
           titulo:  titulo,
