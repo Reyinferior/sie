@@ -233,8 +233,8 @@
       <span>Inventario HSJ</span>
     </div>
     <nav class="switcher" id="sistema-switch">
-      <a id="sw-equipos"    href="#"><span class="ico">💻</span> Equipos</a>
-      <a id="sw-impresoras" href="#" class="active"><span class="ico">🖨️</span> Impresoras</a>
+      <a id="sw-equipos"    href="?sistema=equipos"><span class="ico">💻</span> Equipos</a>
+      <a id="sw-impresoras" href="?sistema=impresoras" class="active"><span class="ico">🖨️</span> Impresoras</a>
     </nav>
   </header>
 
@@ -358,7 +358,7 @@
     }
 
     function iniciar() {
-      document.getElementById('marca').textContent     = DATA.marca || 'Impresoras';
+      document.getElementById('marca').textContent      = DATA.marca  || 'Impresoras';
       document.getElementById('inv-titulo').textContent = DATA.titulo || 'Inventario de Impresoras';
 
       // Si la hoja no tiene columna "Estado", ocultamos el filtro de estado
@@ -497,7 +497,6 @@
       if (editandoId) {
         google.script.run.withSuccessHandler(ok).withFailureHandler(err).actualizarImpresora(editandoId, datos);
       } else {
-        // El backend autogenera el ID si viene vacío
         const colId = DATA.campos && DATA.campos.id;
         if (colId && !datos[colId]) delete datos[colId];
         google.script.run.withSuccessHandler(ok).withFailureHandler(err).crearImpresora(datos);

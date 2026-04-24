@@ -148,18 +148,30 @@ const CONFIG = {
 };
 
 // ----------------------------------------------------------------------------
-//  RUTEO WEB  (Dashboard / Inventario)
+//  RUTEO WEB  (Equipos / Impresoras)
 // ----------------------------------------------------------------------------
 /**
- * Punto de entrada cuando alguien abre la URL de la app web.
- * Según el parámetro ?page=... muestra una página u otra.
+ * Punto de entrada ÚNICO de toda la app web.
+ *  - ?sistema=equipos     -> AppUI         (Dashboard / Inventario / Reportes de equipos)
+ *  - ?sistema=impresoras  -> ImpresorasUI  (Inventario de impresoras)
+ *  - ?page=...            -> pestaña inicial dentro de la app elegida
  */
 function doGet(e) {
-  // Toda la app vive en un solo archivo (AppUI) con pestañas internas.
-  // Se conserva ?page= solo para que los enlaces antiguos sigan abriendo
-  // en la pestaña correcta (?page=inventario, ?page=reportes…).
+  const sistema = (e && e.parameter && e.parameter.sistema) || 'equipos';
+  const page    = (e && e.parameter && e.parameter.page)    || '';
+
+  if (sistema === 'impresoras') {
+    const tpl = HtmlService.createTemplateFromFile('ImpresorasUI');
+    tpl.pestanaInicial = page || 'inventario';
+    return tpl.evaluate()
+      .setTitle('Inventario de Impresoras')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  // Por defecto: app de Equipos
   const tpl = HtmlService.createTemplateFromFile('AppUI');
-  tpl.pestanaInicial = (e && e.parameter && e.parameter.page) || 'dashboard';
+  tpl.pestanaInicial = page || 'dashboard';
   return tpl.evaluate()
     .setTitle('Inventario de Equipos')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
