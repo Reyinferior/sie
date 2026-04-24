@@ -50,9 +50,14 @@ const CONFIGS = {
     LABEL: 'Impresoras',
     HTML_FILE: 'ImpresorasUI.html',
     DATA_FILE: path.join(__dirname, 'data_impresoras.json'),
-    HOJA: 'Impresoras',
-    COLUMNAS_INICIALES: ['ID', 'Nombre', 'Marca', 'Modelo', 'Tipo', 'N° Serie', 'Estado', 'Area', 'Oficina', 'IP', 'Tóner', 'Fecha'],
-    CAMPOS_CLAVE: { id: 'ID', estado: 'Estado', area: 'Area', fecha: 'Fecha' },
+    HOJA: 'Inventario_de_Impresoras',
+    // Mismos nombres de columna que la hoja Excel "Inventario_de_Impresoras"
+    COLUMNAS_INICIALES: [
+      'COD. INV', 'UNIDAD /DPTO', 'AREA / SERVICIO', 'USUARIO(A)', 'CODPAT',
+      'TIPO DE EQUIPO', 'MARCA', 'MODELO', 'TIPO DE IMPRESORA', 'SERIE', 'MAC',
+      'Estado', 'Fecha'
+    ],
+    CAMPOS_CLAVE: { id: 'COD. INV', estado: 'Estado', area: 'AREA / SERVICIO', fecha: 'Fecha' },
     ESTADOS: [
       { nombre: 'Operativo', tipo: 'ok' },
       { nombre: 'Mantenimiento', tipo: 'warn' },
@@ -60,25 +65,27 @@ const CONFIGS = {
     ],
     MARCA: 'Inventario HSJ — Impresoras',
     TITULO: 'Dashboard de Impresoras',
-    PREFIJO_ID: 'IMP-',
+    PREFIJO_ID: '',  // Se ingresa manual (formato del Excel: "NNNNN-AAAA")
     GRUPOS_FILTROS: {
-      'Identificación': ['ID', 'Nombre', 'N° Serie'],
-      'Marca / Modelo': ['Marca', 'Modelo', 'Tipo'],
-      'Ubicación': ['Area', 'Oficina'],
-      'Red': ['IP'],
-      'Consumibles': ['Tóner'],
+      'Identificación':  ['COD. INV', 'CODPAT', 'SERIE', 'MAC'],
+      'Equipo':          ['TIPO DE EQUIPO', 'MARCA', 'MODELO', 'TIPO DE IMPRESORA'],
+      'Ubicación':       ['UNIDAD /DPTO', 'AREA / SERVICIO', 'USUARIO(A)'],
       'Estado y Fechas': ['Estado', 'Fecha']
     },
     SEED: () => {
       const hoy = new Date();
+      const f = (anio) => new Date(anio, 0, 1).toISOString();
       return [
-        { ID: 'IMP-001', Nombre: 'Impresora Recepción',  Marca: 'HP',      Modelo: 'LaserJet Pro M404', Tipo: 'Láser',         'N° Serie': 'CN12345AB', Estado: 'Operativo',     Area: 'Administración', Oficina: 'Recepción',   IP: '10.0.1.21', 'Tóner': 'CF259A',        Fecha: diasAtras(hoy, 30) },
-        { ID: 'IMP-002', Nombre: 'Multifuncional UCI',   Marca: 'Epson',   Modelo: 'EcoTank L3250',     Tipo: 'Multifunción',  'N° Serie': 'X81Y2Z34',  Estado: 'Operativo',     Area: 'UCI',            Oficina: 'Estación 2',  IP: '10.0.2.15', 'Tóner': 'Tinta 003',     Fecha: diasAtras(hoy, 12) },
-        { ID: 'IMP-003', Nombre: 'Impresora Farmacia',   Marca: 'Brother', Modelo: 'HL-L2370DW',        Tipo: 'Láser',         'N° Serie': 'U6311220',  Estado: 'Mantenimiento', Area: 'Farmacia',       Oficina: 'Despacho',    IP: '10.0.3.8',  'Tóner': 'TN-760',        Fecha: diasAtras(hoy, 60) },
-        { ID: 'IMP-004', Nombre: 'Impresora Lab.',       Marca: 'Canon',   Modelo: 'imageCLASS MF267',  Tipo: 'Multifunción',  'N° Serie': 'CAN9981',   Estado: 'Operativo',     Area: 'Laboratorio',    Oficina: 'Resultados',  IP: '10.0.4.10', 'Tóner': '057H',          Fecha: diasAtras(hoy, 45) },
-        { ID: 'IMP-005', Nombre: 'Impresora Radiología', Marca: 'HP',      Modelo: 'OfficeJet 9015',    Tipo: 'Tinta',         'N° Serie': 'CNB7K12',   Estado: 'Operativo',     Area: 'Radiología',     Oficina: 'Lectura',     IP: '10.0.5.4',  'Tóner': '962XL Negro',   Fecha: diasAtras(hoy, 20) },
-        { ID: 'IMP-006', Nombre: 'Impresora Emergencias',Marca: 'Xerox',   Modelo: 'Phaser 6510',       Tipo: 'Láser color',   'N° Serie': 'XR55720',   Estado: 'Baja',          Area: 'Emergencias',    Oficina: 'Triage',      IP: '',          'Tóner': '106R03480',     Fecha: diasAtras(hoy, 200) },
-        { ID: 'IMP-007', Nombre: 'Impresora Pediatría',  Marca: 'Epson',   Modelo: 'WF-2860',           Tipo: 'Multifunción',  'N° Serie': 'EP332L',    Estado: 'Operativo',     Area: 'Pediatría',      Oficina: 'Consultorio 1', IP: '10.0.6.7','Tóner': 'Tinta 220XL',  Fecha: diasAtras(hoy, 70) }
+        { 'COD. INV':'07309-2022', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'DIGITACION 2DO PISO',              'USUARIO(A)':'',                  'CODPAT':'742223580021',     'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'EPSON', 'MODELO':'M205',           'TIPO DE IMPRESORA':'MULTIFUNCIONAL',     'SERIE':'SEAY012188',  'MAC':'', 'Estado':'Operativo', 'Fecha':f(2022) },
+        { 'COD. INV':'07997-2022', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'DIGITACION 1ER PISO',              'USUARIO(A)':'',                  'CODPAT':'742223580019',     'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'EPSON', 'MODELO':'M205',           'TIPO DE IMPRESORA':'MULTIFUNCIONAL',     'SERIE':'SEAY012073',  'MAC':'', 'Estado':'Operativo', 'Fecha':f(2022) },
+        { 'COD. INV':'06393-2022', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'DIGITACION 1ER PISO',              'USUARIO(A)':'',                  'CODPAT':'740840043008',     'TIPO DE EQUIPO':'ETIQUETERA', 'MARCA':'ZEBRA', 'MODELO':'TLP2844',        'TIPO DE IMPRESORA':'TÉRMICA',            'SERIE':'41/122303790','MAC':'', 'Estado':'Operativo', 'Fecha':f(2022) },
+        { 'COD. INV':'07883-2024', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'ECOGRAFIA - ENTRADA',              'USUARIO(A)':'',                  'CODPAT':'740836500147',     'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'HP',    'MODELO':'P1102w (CE658A)','TIPO DE IMPRESORA':'LASER',              'SERIE':'BRBSH4G6N5',  'MAC':'', 'Estado':'Operativo', 'Fecha':f(2024) },
+        { 'COD. INV':'05992-2025', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'ECOGRAFIA - FONDO',                'USUARIO(A)':'',                  'CODPAT':'740836500147',     'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'EPSON', 'MODELO':'L4160',          'TIPO DE IMPRESORA':'INYECCIÓN DE TINTA', 'SERIE':'X53003202',   'MAC':'', 'Estado':'Operativo', 'Fecha':f(2025) },
+        { 'COD. INV':'07910-2022', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'ECOGRAFIA - FONDO',                'USUARIO(A)':'',                  'CODPAT':'532250000013-6',   'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'EPSON', 'MODELO':'L310',           'TIPO DE IMPRESORA':'INYECCIÓN DE TINTA', 'SERIE':'VHLK015753',  'MAC':'', 'Estado':'Operativo', 'Fecha':f(2022) },
+        { 'COD. INV':'06577-2022', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'JEFATURA DIAGNOSTICO POR IMAGEN',  'USUARIO(A)':'',                  'CODPAT':'742223580062',     'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'EPSON', 'MODELO':'M200 (C472A)',   'TIPO DE IMPRESORA':'MULTIFUNCIONAL',     'SERIE':'UKTY005310',  'MAC':'', 'Estado':'Operativo', 'Fecha':f(2022) },
+        { 'COD. INV':'06557-2022', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'SECRETARIA',                       'USUARIO(A)':'VANESSA MARCHAND',  'CODPAT':'740836500190',     'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'EPSON', 'MODELO':'M3170',          'TIPO DE IMPRESORA':'MULTIFUNCIONAL',     'SERIE':'XSTM003618',  'MAC':'', 'Estado':'Operativo', 'Fecha':f(2022) },
+        { 'COD. INV':'09006-2024', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'TOMOGRAFIA',                       'USUARIO(A)':'',                  'CODPAT':'532296880001-31',  'TIPO DE EQUIPO':'IMPRESORA',  'MARCA':'EPSON', 'MODELO':'L1210',          'TIPO DE IMPRESORA':'MULTIFUNCIONAL',     'SERIE':'X8LA005210',  'MAC':'', 'Estado':'Operativo', 'Fecha':f(2024) },
+        { 'COD. INV':'07925-2022', 'UNIDAD /DPTO':'DIAGNOSTICO POR IMAGEN', 'AREA / SERVICIO':'VENTANILLA',                       'USUARIO(A)':'',                  'CODPAT':'740838750015',     'TIPO DE EQUIPO':'ETIQUETERA', 'MARCA':'ZEBRA', 'MODELO':'GC420t',         'TIPO DE IMPRESORA':'TÉRMICA',            'SERIE':'54/143701305','MAC':'', 'Estado':'Operativo', 'Fecha':f(2022) }
       ];
     }
   }

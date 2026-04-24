@@ -899,11 +899,11 @@
         return DATA.columnas.some(c => String(r[c] || '').toLowerCase().includes(q));
       });
 
-      document.getElementById('inv-contador').textContent = filas.length + ' de ' + DATA.filas.length + ' equipos';
-      document.getElementById('inv-footer').textContent   = 'Mostrando ' + filas.length + ' equipo(s)';
+      document.getElementById('inv-contador').textContent = filas.length + ' de ' + DATA.filas.length + ' impresoras';
+      document.getElementById('inv-footer').textContent   = 'Mostrando ' + filas.length + ' impresora(s)';
 
       const tb = document.getElementById('inv-tbody');
-      if (!filas.length) { tb.innerHTML = '<tr><td colspan="99" class="empty">No se encontraron equipos</td></tr>'; return; }
+      if (!filas.length) { tb.innerHTML = '<tr><td colspan="99" class="empty">No se encontraron impresoras</td></tr>'; return; }
 
       tb.innerHTML = filas.map(r => {
         const tds = DATA.columnas.map((c, i) => {
@@ -928,8 +928,8 @@
 
     function abrirNuevo() {
       editandoId = null;
-      document.getElementById('inv-modalTitulo').textContent = 'Nuevo equipo';
-      document.getElementById('inv-modalSub').textContent = 'Completa los datos del equipo.';
+      document.getElementById('inv-modalTitulo').textContent = 'Nueva impresora';
+      document.getElementById('inv-modalSub').textContent = 'Completa los datos de la impresora.';
       pintarCampos({});
       document.getElementById('inv-modal').classList.add('show');
     }
@@ -938,7 +938,7 @@
       const fila = DATA.filas.find(r => String(r.__id) === String(id));
       if (!fila) return;
       editandoId = id;
-      document.getElementById('inv-modalTitulo').textContent = 'Editar equipo';
+      document.getElementById('inv-modalTitulo').textContent = 'Editar impresora';
       document.getElementById('inv-modalSub').textContent = 'Modifica los datos y guarda los cambios.';
       pintarCampos(fila);
       document.getElementById('inv-modal').classList.add('show');
