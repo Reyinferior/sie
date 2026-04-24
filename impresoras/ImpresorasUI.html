@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<!--
+  ============================================================================
+   IMPRESORAS · APP WEB
+   ----------------------------------------------------------------------------
+   Misma estructura visual que la app de Equipos (AppUI), pero esta vista
+   solo trabaja con la pestaña "Inventario_de_Impresoras" del Sheet.
+
+   Estructura interna:
+     1) <style>     -> estilos compartidos + Inventario
+     2) Topbar      -> barra superior con switch a otros sistemas
+     3) Sidebar     -> menú lateral (Inventario habilitado; otros próximos)
+     4) Pestaña     -> #tab-inventario (tabla + toolbar + footer)
+     5) Modal       -> formulario "Nueva/Editar impresora"
+     6) <script>    -> shell + módulo Inventario (CRUD)
+  ============================================================================
+-->
+<title>Inventario de Impresoras — HSJ</title>
+
+<style>
+  /* ==========================================================================
+     VARIABLES DE COLOR
+     ========================================================================== */
+  :root {
+    --bg:#f5f6f8; --panel:#ffffff; --border:#e5e7eb;
+    --text:#1e293b; --text-soft:#64748b; --text-mute:#94a3b8;
+
+    --nav-bg:#fff; --nav-text:#475569; --nav-hover:#f1f5f9;
+    --nav-active-bg:#e0e7ff; --nav-active-tx:#2563eb;
+    --nav-border:#e5e7eb; --nav-brand-bg:#2563eb;
+
+    --topstrip:#0f172a;
+    --accent:#2563eb; --accent-hover:#1d4ed8;
+    --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626;
+
+    --btn-edit:#f59e0b;  --btn-del:#ef4444;
+
+    --sidebar-w:220px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+
+  /* ====== TOPBAR ===================================================== */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: var(--topstrip); color: #fff; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; box-shadow: 0 2px 4px rgba(0,0,0,.08);
+  }
+  .topbar .brand-top {
+    font-weight: 700; font-size: 14px; letter-spacing: .3px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .topbar .brand-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .topbar .switcher {
+    display: flex; gap: 4px; background: rgba(255,255,255,.08);
+    padding: 4px; border-radius: 999px;
+  }
+  .topbar .switcher a {
+    color: #cbd5e1; text-decoration: none; cursor: pointer;
+    padding: 6px 14px; border-radius: 999px; font-size: 12px;
+    display: flex; align-items: center; gap: 6px;
+    transition: background .15s, color .15s;
+  }
+  .topbar .switcher a:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .topbar .switcher a.active { background: var(--accent); color: #fff; font-weight: 600; }
+  .topbar .switcher a .ico { font-size: 13px; }
+
+  /* ====== SIDEBAR ===================================================== */
+  .sidebar {
+    position: fixed; top: 48px; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--nav-bg); color: var(--nav-text);
+    display: flex; flex-direction: column;
+    padding: 16px 12px; overflow-y: auto;
+    border-right: 1px solid var(--nav-border);
+  }
+  .sidebar .brand {
+    background: var(--nav-brand-bg); color: #fff;
+    border-radius: 8px; padding: 14px 12px; text-align: center;
+    margin-bottom: 14px; line-height: 1.25;
+    font-weight: 700; font-size: 13px; letter-spacing: .3px;
+  }
+  .sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar nav a {
+    color: var(--nav-text); text-decoration: none; cursor: pointer;
+    padding: 10px 12px; border-radius: 8px; font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar nav a:hover  { background: var(--nav-hover); }
+  .sidebar nav a.active {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-tx); font-weight: 600;
+  }
+  .sidebar nav a .ico { width: 18px; text-align: center; font-size: 14px; }
+  .sidebar nav a.disabled {
+    color: var(--text-mute); cursor: not-allowed; opacity: .7;
+  }
+  .sidebar nav a.disabled:hover { background: transparent; }
+  .sidebar nav a .pill-soon {
+    margin-left: auto; font-size: 9px; padding: 2px 6px;
+    background: #f1f5f9; color: var(--text-soft);
+    border-radius: 999px; letter-spacing: .3px; text-transform: uppercase;
+  }
+
+  @media (max-width: 720px) {
+    :root { --sidebar-w: 0px; }
+    .topbar .brand-top span:not(.dot) { display:none; }
+    .sidebar {
+      position: relative; top: 0; width: 100%; height: auto;
+      flex-direction: row; align-items: center; padding: 10px 14px;
+      overflow-x: auto; border-right: none; border-bottom: 1px solid var(--nav-border);
+    }
+    .sidebar .brand { margin: 0 12px 0 0; padding: 8px 12px; }
+    .sidebar nav { flex-direction: row; }
+    .sidebar nav a .pill-soon { display: none; }
+  }
+
+  /* ====== ÁREA DE CONTENIDO ============================================ */
+  .container { margin-left: var(--sidebar-w); padding: 72px 28px 24px; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  .page-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .page-title { font-size: 22px; font-weight: 600; }
+  .page-sub   { color: var(--text-soft); font-size: 13px; margin-top: 4px; }
+  .loading    { text-align: center; padding: 30px; color: var(--text-soft); }
+
+  /* ====== BOTONES ====================================================== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); background: #fff; color: var(--text);
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    text-decoration: none;
+  }
+  .btn:hover { background: #f3f4f6; }
+  .btn-primary { background: var(--accent); color:#fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+  .btn-edit { background: var(--btn-edit); color:#fff; border-color: var(--btn-edit); }
+  .btn-edit:hover { background:#d97706; border-color:#d97706; }
+  .btn-del  { background: var(--btn-del);  color:#fff; border-color: var(--btn-del); }
+  .btn-del:hover  { background:#dc2626; border-color:#dc2626; }
+
+  /* ====== CHIPS DE ESTADO ============================================== */
+  .chip {
+    display: inline-block; font-size: 12px;
+    padding: 3px 10px; border-radius: 999px; font-weight: 500;
+  }
+  .chip.ok   { background:#dcfce7; color:#15803d; }
+  .chip.warn { background:#fef3c7; color:#b45309; }
+  .chip.bad  { background:#fee2e2; color:#b91c1c; }
+
+  /* ====== PANEL ======================================================== */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+
+  /* ====== INVENTARIO =================================================== */
+  .toolbar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; margin-bottom: 14px;
+  }
+  .toolbar input, .toolbar select {
+    padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 13px; background: #fff; color: var(--text);
+  }
+  .toolbar input { flex: 1; min-width: 200px; }
+
+  .inv-scroll { overflow: auto; max-height: calc(100vh - 250px); min-height: 300px; }
+  .inv-tabla  { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  .inv-tabla th, .inv-tabla td { white-space: nowrap; padding: 12px; }
+  .inv-tabla thead th {
+    text-align: left; color: #0f172a; font-weight: 700;
+    font-size: 12px; letter-spacing: .4px; text-transform: uppercase;
+    background: #eef2f7; border-bottom: 2px solid #cbd5e1;
+    position: sticky; top: 0; z-index: 2;
+  }
+  .inv-tabla tbody td { border-bottom: 1px solid #f1f3f5; background: #fff; vertical-align: middle; }
+  .inv-tabla tbody tr:last-child td { border-bottom: none; }
+  .inv-tabla tbody tr:hover td { background: #fafbfc; }
+  .inv-tabla th.col-fija-izq, .inv-tabla td.col-fija-izq { position: sticky; left: 0; z-index: 1; box-shadow: 1px 0 0 var(--border); }
+  .inv-tabla thead th.col-fija-izq { z-index: 3; }
+  .inv-tabla th.col-fija-der, .inv-tabla td.col-fija-der { position: sticky; right: 0; z-index: 1; box-shadow: -1px 0 0 var(--border); }
+  .inv-tabla thead th.col-fija-der { z-index: 3; }
+  .acciones { display: flex; gap: 6px; justify-content: flex-end; }
+  .empty    { text-align: center; padding: 40px; color: var(--text-soft); }
+  .footer   { padding: 12px; color: var(--text-mute); font-size: 12px; text-align: right; }
+
+  /* ====== MODAL ======================================================== */
+  .modal-bg { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .modal-bg.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 760px; padding: 22px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .modal p  { font-size: 13px; color: var(--text-soft); margin-bottom: 16px; }
+  .field { margin-bottom: 0; }
+  .field label { display: block; font-size: 11px; color: var(--text-soft); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; }
+  .field input, .field select { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: #fff; color: var(--text); }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
+  .form-grupo {
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px 14px; margin: 0 0 14px; background: #fafbfc;
+  }
+  .form-grupo legend {
+    font-size: 11px; color: var(--accent); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .8px;
+    padding: 2px 8px; background: #fff; border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .form-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px 12px; margin-top: 8px;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+  <!-- ====== TOPBAR ====================================================== -->
+  <header class="topbar">
+    <div class="brand-top">
+      <span class="dot"></span>
+      <span>Inventario HSJ</span>
+    </div>
+    <nav class="switcher" id="sistema-switch">
+      <a id="sw-equipos"    href="#"><span class="ico">💻</span> Equipos</a>
+      <a id="sw-impresoras" href="#" class="active"><span class="ico">🖨️</span> Impresoras</a>
+    </nav>
+  </header>
+
+  <!-- ====== SIDEBAR ====================================================== -->
+  <aside class="sidebar">
+    <div class="brand"><span id="marca">Impresoras</span></div>
+    <nav>
+      <a id="nav-dashboard"  class="disabled" title="Próximamente"><span class="ico">📊</span> Dashboard <span class="pill-soon">pronto</span></a>
+      <a id="nav-inventario" onclick="App.mostrar('inventario')"><span class="ico">🖨️</span> Inventario</a>
+      <a id="nav-reportes"   class="disabled" title="Próximamente"><span class="ico">📈</span> Reportes <span class="pill-soon">pronto</span></a>
+    </nav>
+  </aside>
+
+  <!-- ====== CONTENIDO =================================================== -->
+  <main class="container">
+
+    <!-- ============== PESTAÑA INVENTARIO ============== -->
+    <section class="tab" id="tab-inventario">
+      <div class="page-head">
+        <div>
+          <div class="page-title" id="inv-titulo">Inventario de Impresoras</div>
+          <div class="page-sub" id="inv-contador">Cargando…</div>
+        </div>
+        <button class="btn btn-primary" onclick="Inventario.abrirNuevo()">+ Nueva impresora</button>
+      </div>
+
+      <div class="toolbar">
+        <input id="inv-buscador" type="text" placeholder="Buscar por código, marca, modelo, área…" oninput="Inventario.render()">
+        <select id="inv-filtroEstado" onchange="Inventario.render()">
+          <option value="">Todos los estados</option>
+        </select>
+      </div>
+
+      <div class="panel">
+        <div class="inv-scroll">
+          <table class="inv-tabla">
+            <thead><tr id="inv-thead"></tr></thead>
+            <tbody id="inv-tbody"><tr><td colspan="99" class="loading">Cargando impresoras…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="footer" id="inv-footer"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====== MODAL DEL INVENTARIO ======================================== -->
+  <div class="modal-bg" id="inv-modal">
+    <div class="modal">
+      <h2 id="inv-modalTitulo">Nueva impresora</h2>
+      <p  id="inv-modalSub">Completa los datos de la impresora.</p>
+      <form id="inv-form"
+            onsubmit="Inventario.guardar(event)"
+            onkeydown="if(event.key==='Enter' && event.target.tagName==='INPUT'){event.preventDefault();}">
+        <div id="inv-campos"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="Inventario.cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="inv-btnGuardar">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script>
+  /* ==========================================================================
+     SHELL DE LA APP
+     ========================================================================== */
+  const App = (function() {
+    const inicial = '<?= pestanaInicial ?>' || 'inventario';
+    const cargadas = {};
+
+    function mostrar(nombre) {
+      // Solo Inventario está habilitado por ahora
+      if (nombre !== 'inventario') return;
+      document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+      document.getElementById('nav-' + nombre).classList.add('active');
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + nombre).classList.add('active');
+
+      if (!cargadas[nombre]) {
+        cargadas[nombre] = true;
+        if (nombre === 'inventario') Inventario.cargar();
+      }
+    }
+
+    function recargar(nombre) {
+      cargadas[nombre] = false;
+      if (nombre === 'inventario') Inventario.cargar();
+      cargadas[nombre] = true;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => mostrar('inventario'));
+    return { mostrar, recargar };
+  })();
+
+  /* ==========================================================================
+     UTILIDADES COMPARTIDAS
+     ========================================================================== */
+  function _escAttr(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"&#39;").replace(/</g,'&lt;'); }
+  function _escHtml(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _formatearFecha(v) {
+    const d = new Date(v); if (isNaN(d)) return v;
+    return d.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
+  }
+
+  /* ==========================================================================
+     MÓDULO: INVENTARIO (CRUD)
+     ========================================================================== */
+  const Inventario = (function() {
+    let DATA = { columnas: [], filas: [], estados: [], campos: {}, grupos: [] };
+    let editandoId = null;
+
+    function cargar() {
+      google.script.run
+        .withSuccessHandler(d => { DATA = d; iniciar(); })
+        .withFailureHandler(err => {
+          document.getElementById('inv-tbody').innerHTML =
+            '<tr><td colspan="99" class="loading">Error: ' + err.message + '</td></tr>';
+        })
+        .listarImpresoras();
+    }
+
+    function iniciar() {
+      document.getElementById('marca').textContent     = DATA.marca || 'Impresoras';
+      document.getElementById('inv-titulo').textContent = DATA.titulo || 'Inventario de Impresoras';
+
+      // Si la hoja no tiene columna "Estado", ocultamos el filtro de estado
+      const sel = document.getElementById('inv-filtroEstado');
+      if (DATA.campos && DATA.campos.estado) {
+        sel.style.display = '';
+        sel.innerHTML = '<option value="">Todos los estados</option>';
+        (DATA.estados || []).forEach(e => {
+          const o = document.createElement('option');
+          o.value = e.nombre; o.textContent = e.nombre;
+          sel.appendChild(o);
+        });
+      } else {
+        sel.style.display = 'none';
+      }
+
+      const thead = document.getElementById('inv-thead');
+      thead.innerHTML = DATA.columnas.map((c, i) =>
+          '<th class="' + (i === 0 ? 'col-fija-izq' : '') + '">' + _escHtml(c) + '</th>'
+        ).join('') +
+        '<th class="col-fija-der" style="text-align:right">Acciones</th>';
+
+      render();
+    }
+
+    function render() {
+      const q = document.getElementById('inv-buscador').value.trim().toLowerCase();
+      const estadoF = document.getElementById('inv-filtroEstado').value;
+
+      const filas = DATA.filas.filter(r => {
+        if (estadoF && DATA.campos.estado && r[DATA.campos.estado] !== estadoF) return false;
+        if (!q) return true;
+        return DATA.columnas.some(c => String(r[c] || '').toLowerCase().includes(q));
+      });
+
+      document.getElementById('inv-contador').textContent = filas.length + ' de ' + DATA.filas.length + ' impresoras';
+      document.getElementById('inv-footer').textContent   = 'Mostrando ' + filas.length + ' impresora(s)';
+
+      const tb = document.getElementById('inv-tbody');
+      if (!filas.length) { tb.innerHTML = '<tr><td colspan="99" class="empty">No se encontraron impresoras</td></tr>'; return; }
+
+      tb.innerHTML = filas.map(r => {
+        const tds = DATA.columnas.map((c, i) => {
+          let v = r[c];
+          const cls = i === 0 ? ' class="col-fija-izq"' : '';
+          if (DATA.campos.estado && c === DATA.campos.estado) {
+            return '<td' + cls + '><span class="chip ' + (r.__tipoEstado || 'ok') + '">' + _escHtml(v || '') + '</span></td>';
+          }
+          if (DATA.campos.fecha && c === DATA.campos.fecha && v) v = _formatearFecha(v);
+          return '<td' + cls + '>' + _escHtml(v == null ? '' : v) + '</td>';
+        }).join('');
+
+        const id = r.__id || '';
+        return '<tr>' + tds +
+          '<td class="col-fija-der"><div class="acciones">' +
+            '<button class="btn btn-sm btn-edit" onclick="Inventario.abrirEditar(\'' + esc(id) + '\')">Editar</button>' +
+            '<button class="btn btn-sm btn-del"  onclick="Inventario.eliminar(\'' + esc(id) + '\')">Eliminar</button>' +
+          '</div></td></tr>';
+      }).join('');
+    }
+
+    function abrirNuevo() {
+      editandoId = null;
+      document.getElementById('inv-modalTitulo').textContent = 'Nueva impresora';
+      document.getElementById('inv-modalSub').textContent = 'Completa los datos de la impresora.';
+      pintarCampos({});
+      document.getElementById('inv-modal').classList.add('show');
+    }
+
+    function abrirEditar(id) {
+      const fila = DATA.filas.find(r => String(r.__id) === String(id));
+      if (!fila) return;
+      editandoId = id;
+      document.getElementById('inv-modalTitulo').textContent = 'Editar impresora';
+      document.getElementById('inv-modalSub').textContent = 'Modifica los datos y guarda los cambios.';
+      pintarCampos(fila);
+      document.getElementById('inv-modal').classList.add('show');
+    }
+
+    function cerrar() { document.getElementById('inv-modal').classList.remove('show'); }
+
+    function pintarCampos(fila) {
+      const cont = document.getElementById('inv-campos');
+      const usadas = {};
+      const grupos = (DATA.grupos || []);
+
+      const bloques = grupos.map(g => {
+        const inputs = g.columnas.map(c => { usadas[c] = true; return campoFila(c, fila); }).join('');
+        return bloqueFormulario(g.nombre, inputs);
+      });
+
+      const resto = DATA.columnas.filter(c => !usadas[c]);
+      if (resto.length) {
+        const inputs = resto.map(c => campoFila(c, fila)).join('');
+        bloques.push(bloqueFormulario('Otros', inputs));
+      }
+      cont.innerHTML = bloques.join('');
+    }
+
+    function campoFila(c, fila) {
+      const valor = fila[c] != null ? fila[c] : '';
+      if (DATA.campos.id && c === DATA.campos.id) {
+        const ph = editandoId ? '' : 'Se generará automáticamente';
+        return campo(c, '<input name="' + _escAttr(c) + '" value="' + _escAttr(valor) + '" placeholder="' + ph + '" ' + (editandoId ? 'readonly' : '') + '>');
+      }
+      if (DATA.campos.estado && c === DATA.campos.estado) {
+        const opts = DATA.estados.map(e =>
+          '<option value="' + _escAttr(e.nombre) + '"' + (e.nombre === valor ? ' selected' : '') + '>' + _escHtml(e.nombre) + '</option>'
+        ).join('');
+        return campo(c, '<select name="' + _escAttr(c) + '">' + opts + '</select>');
+      }
+      if (DATA.campos.fecha && c === DATA.campos.fecha) {
+        const v = valor ? new Date(valor).toISOString().slice(0, 10) : '';
+        return campo(c, '<input name="' + _escAttr(c) + '" type="date" value="' + v + '">');
+      }
+      return campo(c, '<input name="' + _escAttr(c) + '" value="' + _escAttr(valor) + '">');
+    }
+    function campo(label, input) { return '<div class="field"><label>' + _escHtml(label) + '</label>' + input + '</div>'; }
+    function bloqueFormulario(nombre, inputs) {
+      return '<fieldset class="form-grupo"><legend>' + _escHtml(nombre) + '</legend>' +
+             '<div class="form-grid">' + inputs + '</div></fieldset>';
+    }
+
+    function guardar(ev) {
+      ev.preventDefault();
+      const form = document.getElementById('inv-form');
+      const datos = {};
+      Array.from(form.elements).forEach(el => { if (el.name) datos[el.name] = el.value; });
+
+      const btn = document.getElementById('inv-btnGuardar');
+      btn.disabled = true; btn.textContent = 'Guardando…';
+
+      const ok  = () => { btn.disabled = false; btn.textContent = 'Guardar'; cerrar(); cargar(); };
+      const err = e  => { btn.disabled = false; btn.textContent = 'Guardar'; alert('Error: ' + e.message); };
+
+      if (editandoId) {
+        google.script.run.withSuccessHandler(ok).withFailureHandler(err).actualizarImpresora(editandoId, datos);
+      } else {
+        // El backend autogenera el ID si viene vacío
+        const colId = DATA.campos && DATA.campos.id;
+        if (colId && !datos[colId]) delete datos[colId];
+        google.script.run.withSuccessHandler(ok).withFailureHandler(err).crearImpresora(datos);
+      }
+    }
+
+    function eliminar(id) {
+      if (!confirm('¿Eliminar la impresora ' + id + '? Esta acción no se puede deshacer.')) return;
+      google.script.run
+        .withSuccessHandler(() => cargar())
+        .withFailureHandler(e => alert('Error: ' + e.message))
+        .eliminarImpresora(id);
+    }
+
+    function esc(s) { return String(s).replace(/'/g, "\\'"); }
+
+    return { cargar, render, abrirNuevo, abrirEditar, cerrar, guardar, eliminar };
+  })();
+</script>
+</body>
+</html>
