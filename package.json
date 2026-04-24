@@ -1,0 +1,9 @@
+{
+  "name": "inventario-hsj-preview",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Replit preview server for the Google Apps Script Inventario HSJ project",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
