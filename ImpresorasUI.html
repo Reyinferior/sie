@@ -1012,7 +1012,9 @@
       if (editandoId) {
         google.script.run.withSuccessHandler(ok).withFailureHandler(err).actualizarEquipo(editandoId, datos);
       } else {
-        if (!datos.ID) delete datos.ID;
+        // El backend auto-genera el ID si viene vacío
+        const colId = DATA.campos && DATA.campos.id;
+        if (colId && !datos[colId]) delete datos[colId];
         google.script.run.withSuccessHandler(ok).withFailureHandler(err).crearEquipo(datos);
       }
     }
