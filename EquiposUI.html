@@ -20,7 +20,7 @@
      5) <script>    -> shell + módulos Dashboard / Inventario / Reportes
    ============================================================================
 -->
-<title>Inventario de Equipos HSJ</title>
+<title>Inventario de Equipos — HSJ</title>
 
 <style>
   /* ==========================================================================
@@ -548,10 +548,10 @@
     <section class="tab" id="tab-inventario">
       <div class="page-head">
         <div>
-          <div class="page-title" id="inv-titulo">Inventario</div>
+          <div class="page-title">Inventario de Equipos</div>
           <div class="page-sub" id="inv-contador">Cargando…</div>
         </div>
-        <button class="btn btn-primary" id="inv-btnNuevo" onclick="Inventario.abrirNuevo()">+ Nuevo</button>
+        <button class="btn btn-primary" onclick="Inventario.abrirNuevo()">+ Nuevo equipo</button>
       </div>
 
       <div class="toolbar">
@@ -871,15 +871,6 @@
 
     function iniciar() {
       document.getElementById('marca').textContent = DATA.marca;
-
-      // Etiquetas dinámicas según el sistema activo
-      const esImpresoras = window.SISTEMA === 'impresoras';
-      const titulo = esImpresoras ? 'Inventario de Impresoras' : 'Inventario de Equipos';
-      const btnNuevo = esImpresoras ? '+ Nueva impresora' : '+ Nuevo equipo';
-      const elT = document.getElementById('inv-titulo');
-      const elB = document.getElementById('inv-btnNuevo');
-      if (elT) elT.textContent = titulo;
-      if (elB) elB.textContent = btnNuevo;
 
       const sel = document.getElementById('inv-filtroEstado');
       sel.innerHTML = '<option value="">Todos los estados</option>';

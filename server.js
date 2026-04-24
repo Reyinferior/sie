@@ -10,6 +10,7 @@ const HOST = '0.0.0.0';
 const CONFIGS = {
   equipos: {
     LABEL: 'Equipos',
+    HTML_FILE: 'EquiposUI.html',
     DATA_FILE: path.join(__dirname, 'data_equipos.json'),
     HOJA: 'Equipos',
     COLUMNAS_INICIALES: ['ID', 'Nombre', 'Categoria', 'Estado', 'Area', 'Fecha'],
@@ -47,6 +48,7 @@ const CONFIGS = {
 
   impresoras: {
     LABEL: 'Impresoras',
+    HTML_FILE: 'ImpresorasUI.html',
     DATA_FILE: path.join(__dirname, 'data_impresoras.json'),
     HOJA: 'Impresoras',
     COLUMNAS_INICIALES: ['ID', 'Nombre', 'Marca', 'Modelo', 'Tipo', 'N° Serie', 'Estado', 'Area', 'Oficina', 'IP', 'Tóner', 'Fecha'],
@@ -340,8 +342,9 @@ const SHIM = `
 </script>
 `;
 
-function renderHtml(pestanaInicial) {
-  let html = fs.readFileSync(path.join(__dirname, 'AppUI.html'), 'utf8');
+function renderHtml(sistema, pestanaInicial) {
+  const cfg = CONFIGS[sistema];
+  let html = fs.readFileSync(path.join(__dirname, cfg.HTML_FILE), 'utf8');
   html = html.replace(/<\?=\s*pestanaInicial\s*\?>/g, pestanaInicial);
   html = html.replace('</head>', SHIM + '</head>');
   return html;
@@ -352,7 +355,8 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
       const page = url.searchParams.get('page') || 'dashboard';
-      const html = renderHtml(page);
+      const sistema = getSistema(url.searchParams.get('sistema'));
+      const html = renderHtml(sistema, page);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
       return res.end(html);
     }
