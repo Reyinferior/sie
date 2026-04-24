@@ -20,7 +20,7 @@
      5) <script>    -> shell + módulos Dashboard / Inventario / Reportes
    ============================================================================
 -->
-<title>Inventario de Equipos HSJ</title>
+<title>Inventario de Equipos — HSJ</title>
 
 <style>
   /* ==========================================================================
@@ -51,15 +51,35 @@
     background: var(--bg); color: var(--text); min-height: 100vh;
   }
 
-  /* Franja oscura decorativa arriba */
-  body::before {
-    content:""; position:fixed; top:0; left:0; right:0;
-    height:6px; background: var(--topstrip); z-index: 10;
+  /* Barra superior con el switch de sistema */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: var(--topstrip); color: #fff; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; box-shadow: 0 2px 4px rgba(0,0,0,.08);
   }
+  .topbar .brand-top {
+    font-weight: 700; font-size: 14px; letter-spacing: .3px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .topbar .brand-top .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .topbar .switcher {
+    display: flex; gap: 4px; background: rgba(255,255,255,.08);
+    padding: 4px; border-radius: 999px;
+  }
+  .topbar .switcher a {
+    color: #cbd5e1; text-decoration: none; cursor: pointer;
+    padding: 6px 14px; border-radius: 999px; font-size: 12px;
+    display: flex; align-items: center; gap: 6px;
+    transition: background .15s, color .15s;
+  }
+  .topbar .switcher a:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .topbar .switcher a.active { background: var(--accent); color: #fff; font-weight: 600; }
+  .topbar .switcher a .ico { font-size: 13px; }
 
   /* ====== SIDEBAR ===================================================== */
   .sidebar {
-    position: fixed; top: 6px; left: 0; bottom: 0;
+    position: fixed; top: 48px; left: 0; bottom: 0;
     width: var(--sidebar-w);
     background: var(--nav-bg); color: var(--nav-text);
     display: flex; flex-direction: column;
@@ -87,7 +107,7 @@
 
   @media (max-width: 720px) {
     :root { --sidebar-w: 0px; }
-    body::before { display: none; }
+    .topbar .brand-top span:not(.dot) { display:none; }
     .sidebar {
       position: relative; top: 0; width: 100%; height: auto;
       flex-direction: row; align-items: center; padding: 10px 14px;
@@ -98,7 +118,7 @@
   }
 
   /* ====== ÁREA DE CONTENIDO Y PESTAÑAS ================================ */
-  .container { margin-left: var(--sidebar-w); padding: 24px 28px; }
+  .container { margin-left: var(--sidebar-w); padding: 72px 28px 24px; }
   .tab { display: none; }
   .tab.active { display: block; }
 
@@ -470,6 +490,18 @@
 </head>
 <body>
 
+  <!-- ====== BARRA SUPERIOR (switch de sistema) ============================ -->
+  <header class="topbar">
+    <div class="brand-top">
+      <span class="dot"></span>
+      <span>Inventario HSJ</span>
+    </div>
+    <nav class="switcher" id="sistema-switch">
+      <a id="sw-equipos"    href="?sistema=equipos"><span class="ico">💻</span> Equipos</a>
+      <a id="sw-impresoras" href="?sistema=impresoras"><span class="ico">🖨️</span> Impresoras</a>
+    </nav>
+  </header>
+
   <!-- ====== SIDEBAR ====================================================== -->
   <aside class="sidebar">
     <div class="brand"><span id="marca">Inventario</span></div>
@@ -549,7 +581,7 @@
         </div>
         <div class="botones" style="display:flex;gap:8px">
           <button class="btn btn-excel" onclick="Reportes.exportarExcel()">⬇ Excel</button>
-          <button class="btn btn-pdf"   onclick="window.print()">⬇ PDF</button>
+          <button class="btn btn-pdf"   onclick="Reportes.exportarPDF()">⬇ PDF</button>
         </div>
       </div>
 
@@ -604,6 +636,21 @@
      SHELL DE LA APP - controla qué pestaña se muestra y carga sus datos
      una sola vez (lazy loading).
      ========================================================================== */
+  // Marca el sistema activo en la barra superior y preserva la pestaña actual
+  // al hacer click en el switch (?sistema=X&page=Y).
+  (function() {
+    const sis = (window.SISTEMA === 'impresoras') ? 'impresoras' : 'equipos';
+    const el = document.getElementById('sw-' + sis);
+    if (el) el.classList.add('active');
+    document.querySelectorAll('#sistema-switch a').forEach(a => {
+      const url = new URL(a.href, location.origin);
+      const params = new URLSearchParams(location.search);
+      const pageActual = params.get('page') || 'dashboard';
+      url.searchParams.set('page', pageActual);
+      a.href = url.pathname + '?' + url.searchParams.toString();
+    });
+  })();
+
   const App = (function() {
     // Pestaña activa de inicio (la pasa el backend según ?page=)
     const inicial = '<?= pestanaInicial ?>';
@@ -651,6 +698,71 @@
     const d = new Date(v); if (isNaN(d)) return v;
     return d.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
   }
+
+  // Imprime un HTML completo dentro de un iframe oculto, sin abrir
+  // ventanas/pestañas externas. El navegador muestra su diálogo nativo
+  // de impresión y desde ahí se puede "Guardar como PDF".
+  function _imprimirEnIframe(html) {
+    const prev = document.getElementById('print-frame');
+    if (prev) prev.remove();
+    const f = document.createElement('iframe');
+    f.id = 'print-frame';
+    f.setAttribute('aria-hidden', 'true');
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(f);
+    const doc = f.contentDocument || f.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    const lanzar = () => {
+      try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) {}
+    };
+    if (doc.readyState === 'complete') setTimeout(lanzar, 80);
+    else f.onload = () => setTimeout(lanzar, 80);
+  }
+
+  // Bloque de firmas para los PDFs (Responsable TI / Usuario Receptor).
+  function _bloqueFirmas() {
+    return '<div class="firmas">' +
+             '<div class="firma"><div class="linea"></div>' +
+               '<div class="rol">Responsable TI</div>' +
+               '<div class="sub">Nombre y Firma</div></div>' +
+             '<div class="firma"><div class="linea"></div>' +
+               '<div class="rol">Usuario Receptor</div>' +
+               '<div class="sub">Nombre y Firma</div></div>' +
+           '</div>';
+  }
+
+  // CSS reutilizado por las hojas PDF (cabecera, secciones y firmas).
+  const _CSS_PDF =
+    '*{box-sizing:border-box;margin:0;padding:0}' +
+    'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1e293b;padding:24px;background:#fff}' +
+    '.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:18px}' +
+    '.head .marca{font-size:11px;letter-spacing:.5px;color:#64748b;text-transform:uppercase}' +
+    '.head .pc{font-size:22px;font-weight:700;color:#0f172a}' +
+    '.head .nombre{font-size:13px;color:#475569;margin-top:2px}' +
+    '.head .meta{text-align:right;font-size:11px;color:#64748b}' +
+    '.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-top:4px;background:#dbeafe;color:#1d4ed8}' +
+    'section{margin-bottom:14px;break-inside:avoid}' +
+    'section h3{background:#2563eb;color:#fff;padding:6px 10px;border-radius:4px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}' +
+    '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 10px}' +
+    '.cell{border:1px solid #e5e7eb;border-radius:4px;padding:6px 8px;background:#f8fafc}' +
+    '.cell .lbl{font-size:10px;color:#2563eb;font-weight:600;text-transform:uppercase;letter-spacing:.3px}' +
+    '.cell .val{font-size:12px;color:#0f172a;margin-top:2px;word-break:break-word}' +
+    '.resumen{background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-size:11px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}' +
+    '.resumen .lbl{color:#64748b;text-transform:uppercase;letter-spacing:.4px;font-weight:600;font-size:10px;margin-right:4px}' +
+    '.filtro{background:#dbeafe;color:#1d4ed8;padding:3px 8px;border-radius:999px;font-size:10px}' +
+    '.filtro.foco{background:#fef3c7;color:#92400e}' +
+    '.total{font-size:12px;color:#0f172a;font-weight:600;margin-left:auto}' +
+    'table.tabla{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px}' +
+    'table.tabla th{background:#2563eb;color:#fff;padding:6px 8px;border:1px solid #1d4ed8;text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:9px}' +
+    'table.tabla td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top;word-break:break-word}' +
+    'table.tabla tr:nth-child(even) td{background:#f8fafc}' +
+    '.firmas{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:50px;padding:0 30px;break-inside:avoid}' +
+    '.firma{text-align:center}' +
+    '.firma .linea{border-top:1px solid #1e293b;height:1px;margin-bottom:6px}' +
+    '.firma .rol{font-size:12px;font-weight:700;color:#0f172a}' +
+    '.firma .sub{font-size:10px;color:#64748b;margin-top:1px}' +
+    '.foot{margin-top:24px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#94a3b8;text-align:center}' +
+    '@media print{body{padding:14px}.no-print{display:none}}';
 
   /* ==========================================================================
      MÓDULO: DASHBOARD
@@ -808,6 +920,7 @@
         return '<tr>' + tds +
           '<td class="col-fija-der"><div class="acciones">' +
             '<button class="btn btn-sm btn-edit" onclick="Inventario.abrirEditar(\'' + esc(id) + '\')">Editar</button>' +
+            '<button class="btn btn-sm btn-pdf"  onclick="Inventario.imprimirFicha(\'' + esc(id) + '\')">PDF</button>' +
             '<button class="btn btn-sm btn-del"  onclick="Inventario.eliminar(\'' + esc(id) + '\')">Eliminar</button>' +
           '</div></td></tr>';
       }).join('');
@@ -899,7 +1012,9 @@
       if (editandoId) {
         google.script.run.withSuccessHandler(ok).withFailureHandler(err).actualizarEquipo(editandoId, datos);
       } else {
-        if (!datos.ID) delete datos.ID;
+        // El backend auto-genera el ID si viene vacío
+        const colId = DATA.campos && DATA.campos.id;
+        if (colId && !datos[colId]) delete datos[colId];
         google.script.run.withSuccessHandler(ok).withFailureHandler(err).crearEquipo(datos);
       }
     }
@@ -914,7 +1029,66 @@
 
     function esc(s) { return String(s).replace(/'/g, "\\'"); }
 
-    return { cargar, render, abrirNuevo, abrirEditar, cerrar, guardar, eliminar };
+    // Genera una ficha PDF del equipo (se abre el diálogo de impresión
+    // para guardar como PDF). Agrupa los campos según CONFIG.GRUPOS_FILTROS.
+    function imprimirFicha(id) {
+      const fila = DATA.filas.find(r => String(r.__id) === String(id));
+      if (!fila) { alert('Equipo no encontrado'); return; }
+
+      const fmt = v => {
+        if (v == null) return '';
+        if (v instanceof Date || (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))) {
+          return _formatearFecha(v);
+        }
+        return String(v);
+      };
+
+      const usadas = {};
+      const bloques = (DATA.grupos || []).map(g => {
+        const filasHtml = g.columnas.map(c => {
+          usadas[c] = true;
+          const v = fmt(fila[c]);
+          if (!String(v).trim()) return '';
+          return '<div class="cell"><div class="lbl">' + _escHtml(c) +
+                 '</div><div class="val">' + _escHtml(v) + '</div></div>';
+        }).filter(Boolean).join('');
+        if (!filasHtml) return '';
+        return '<section><h3>' + _escHtml(g.nombre) + '</h3><div class="grid">' + filasHtml + '</div></section>';
+      }).filter(Boolean);
+
+      const restoHtml = DATA.columnas.filter(c => !usadas[c]).map(c => {
+        const v = fmt(fila[c]);
+        if (!String(v).trim()) return '';
+        return '<div class="cell"><div class="lbl">' + _escHtml(c) +
+               '</div><div class="val">' + _escHtml(v) + '</div></div>';
+      }).filter(Boolean).join('');
+      if (restoHtml) bloques.push('<section><h3>Otros</h3><div class="grid">' + restoHtml + '</div></section>');
+
+      const titulo = (DATA.campos.id ? fila[DATA.campos.id] : id) || 'Equipo';
+      const nombre = fila['Nombre'] || fila[DATA.columnas[1]] || '';
+      const estado = DATA.campos.estado ? fila[DATA.campos.estado] : '';
+
+      const html =
+        '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+        '<title>Ficha ' + _escHtml(titulo) + '</title><style>' + _CSS_PDF +
+        '</style></head><body>' +
+        '<div class="head">' +
+          '<div><div class="marca">' + _escHtml(DATA.marca || '') + '</div>' +
+          '<div class="pc">' + _escHtml(titulo) + '</div>' +
+          '<div class="nombre">' + _escHtml(nombre) + '</div>' +
+          (estado ? '<span class="chip">' + _escHtml(estado) + '</span>' : '') +
+          '</div>' +
+          '<div class="meta">Ficha de Equipo<br>' + new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) + '</div>' +
+        '</div>' +
+        bloques.join('') +
+        _bloqueFirmas() +
+        '<div class="foot">Documento generado automáticamente — ' + _escHtml(DATA.marca || '') + '</div>' +
+        '</body></html>';
+
+      _imprimirEnIframe(html);
+    }
+
+    return { cargar, render, abrirNuevo, abrirEditar, cerrar, guardar, eliminar, imprimirFicha };
   })();
 
   /* ==========================================================================
@@ -1281,7 +1455,59 @@
       URL.revokeObjectURL(url);
     }
 
-    return { cargar, render, toggleGrupo, toggleFiltro, quitarFiltro, seleccionarConteo, quitarFoco, buscar, limpiar, seleccionarFila, cerrarDetalle, exportarExcel };
+    function exportarPDF() {
+      const filas = hayFiltros() ? aplicarConFoco() : DATA.filas;
+      if (!filas.length) { alert('No hay datos para exportar'); return; }
+
+      const fmt = v => {
+        if (v == null) return '';
+        if (v instanceof Date || (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))) {
+          return _formatearFecha(v);
+        }
+        return String(v);
+      };
+
+      // Resumen de filtros activos para mostrarlos en el encabezado del PDF
+      const chipsFiltros = [];
+      Object.keys(filtrosActivos).forEach(col => {
+        Array.from(filtrosActivos[col]).forEach(v => {
+          chipsFiltros.push('<span class="filtro"><b>' + _escHtml(col) + ':</b> ' + _escHtml(v) + '</span>');
+        });
+      });
+      if (filtroFoco) chipsFiltros.push('<span class="filtro foco"><b>' + _escHtml(filtroFoco.col) + ':</b> ' + _escHtml(filtroFoco.val) + '</span>');
+      const qBuscar = document.getElementById('rep-buscador').value.trim();
+      if (qBuscar) chipsFiltros.push('<span class="filtro"><b>Búsqueda:</b> ' + _escHtml(qBuscar) + '</span>');
+
+      const ths = DATA.columnas.map(c => '<th>' + _escHtml(c) + '</th>').join('');
+      const trs = filas.map(f =>
+        '<tr>' + DATA.columnas.map(c => '<td>' + _escHtml(fmt(f[c])) + '</td>').join('') + '</tr>'
+      ).join('');
+
+      const html =
+        '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+        '<title>Reporte ' + new Date().toISOString().slice(0,10) + '</title>' +
+        '<style>@page{size:A4 landscape;margin:10mm}' + _CSS_PDF + '</style>' +
+        '</head><body>' +
+        '<div class="head">' +
+          '<div><div class="marca">' + _escHtml(DATA.marca || '') + '</div>' +
+          '<div class="pc">Reporte de Inventario</div>' +
+          '<div class="nombre">' + filas.length + ' equipo(s) listados</div></div>' +
+          '<div class="meta">Reporte<br>' + new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'long', year:'numeric' }) + '</div>' +
+        '</div>' +
+        '<div class="resumen">' +
+          '<span class="lbl">Filtros:</span>' +
+          (chipsFiltros.length ? chipsFiltros.join('') : '<span class="filtro">Sin filtros</span>') +
+          '<span class="total">' + filas.length + ' equipos</span>' +
+        '</div>' +
+        '<table class="tabla"><thead><tr>' + ths + '</tr></thead><tbody>' + trs + '</tbody></table>' +
+        _bloqueFirmas() +
+        '<div class="foot">Documento generado automáticamente — ' + _escHtml(DATA.marca || '') + '</div>' +
+        '</body></html>';
+
+      _imprimirEnIframe(html);
+    }
+
+    return { cargar, render, toggleGrupo, toggleFiltro, quitarFiltro, seleccionarConteo, quitarFoco, buscar, limpiar, seleccionarFila, cerrarDetalle, exportarExcel, exportarPDF };
   })();
 </script>
 </body>
